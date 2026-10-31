@@ -2,11 +2,13 @@
 export const strings = {
   ko: {
     appName: "WonSense",
-    tagline: "서울 물가 감각",
+    tagline: "서울 물가 감각의 모든 것",
     searchPlaceholder: "음식이나 물건을 검색해 보세요 (예: bibimbap, 소주)",
     quizTitle: "오늘의 퀴즈",
-    heatmapTitle: "Heat map",
-    reviewTitle: "Review",
+    heatmapTitle: "히트맵",
+    reviewTitle: "리뷰",
+    searchTitle: "검색",
+    backHome: "← 홈",
     comingSoon: "준비 중",
     quizLoading: "오늘의 문제를 불러오는 중…",
     heatmapSource: "출처: 한국소비자원 등 공공 통계",
