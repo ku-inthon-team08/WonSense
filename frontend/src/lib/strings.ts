@@ -10,12 +10,17 @@ export const strings = {
     reviewTitle: "리뷰",
     comingSoon: "준비 중",
     quizLoading: "문제를 불러오는 중…",
-    quizRight: "Right!",
-    quizNear: "Near!",
-    quizWrong: "Wrong.",
     quizSource: "출처",
     quizNext: "다음 문제",
     quizNeedNumber: "숫자를 입력하세요",
+    quizTypes: { guess: "가격 맞히기", higher_lower: "더 비쌀까?", menu: "이 가격 괜찮을까?" },
+    quizVerdict: { right: "정답!", near: "아깝다!", wrong: "땡!" },
+    quizHigher: "더 비싸요 ⬆️",
+    quizLower: "더 싸요 ⬇️",
+    quizNormal: "보통이에요",
+    quizAbove: "비싼 편이에요",
+    quizGuessPlaceholder: "예: 3,000",
+    quizWon: "원",
     quizError: "퀴즈를 불러오지 못했어요. 백엔드가 켜져 있는지 확인하세요.",
     heatmapSource: "출처: 서울 열린데이터광장 생필품 가격",
     reviewEmpty: "아직 리뷰가 없어요",
@@ -170,8 +175,21 @@ export const t = strings.ko;
 export type QuizResult = "right" | "near" | "wrong";
 export type QuizDirection = "high" | "low";
 
-export function quizFeedback(result: QuizResult, direction: QuizDirection, avgText: string): string {
-  if (result === "right") return `Right! Average is ${avgText}.`;
-  if (result === "near") return `Near! A bit ${direction}. Average is ${avgText}.`;
-  return `Wrong. Way too ${direction}. Average is ${avgText}.`;
-}
+const won = (n: number) => n.toLocaleString("ko-KR");
+
+// 퀴즈 결과 한 줄 피드백. 가격 뒤에는 항상 '원이에요'라서 받침 걱정이 없다.
+export const quizFeedback = {
+  guess(result: QuizResult, direction: QuizDirection, avg: number): string {
+    const way = direction === "high" ? "비싸게" : "싸게";
+    if (result === "right") return `평균 ${won(avg)}원이에요.`;
+    if (result === "near") return `조금 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
+    return `너무 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
+  },
+  higherLower(target: string, price: number): string {
+    return `${target}의 평균은 ${won(price)}원이에요.`;
+  },
+  menu(answer: "normal" | "above", low: number, high: number): string {
+    const verdict = answer === "normal" ? "보통 가격이에요" : "비싼 편이에요";
+    return `${verdict}. 착한가격업소는 보통 ${won(low)}~${won(high)}원이에요.`;
+  },
+};
