@@ -26,14 +26,20 @@ export default function Home() {
             </h1>
             <p className={`${taglineFont.className} translate-y-1 text-base text-brand-pale md:text-xl`}>{t.tagline}</p>
           </div>
-          <SearchBar />
-          <Link
-            href="/scan"
-            className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
-          >
-            <CameraIcon className="h-5 w-5" />
-            {t.scan.entry}
-          </Link>
+          {/* Search + scan share one row; the button stretches to the search bar's height. */}
+          <div className="flex gap-3">
+            <div className="min-w-0 flex-1">
+              <SearchBar />
+            </div>
+            <Link
+              href="/scan"
+              aria-label={t.scan.entry}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/20 px-4 text-sm font-medium text-white hover:bg-white/30 md:px-5"
+            >
+              <CameraIcon className="h-5 w-5" />
+              <span className="hidden md:inline">{t.scan.entry}</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -45,18 +51,25 @@ export default function Home() {
           <QuizCard />
         </section>
 
-        <div className="flex flex-col gap-6">
+        {/* Two equal rows: the review card is always as tall as the heat map card. */}
+        <div className="grid auto-rows-fr gap-6">
           {/* ③ Heat map (public stats) */}
-          <section className={`${card} flex-1`}>
+          <section className={card}>
             <SectionHeader title={t.heatmapPageTitle} href="/heatmap" />
             <HeatmapPreview />
             <p className="mt-auto pt-2 text-xs text-slate-500">{t.heatmapSource}</p>
           </section>
 
-          {/* ④ Reviews (own build) */}
-          <section className={`${card} flex-1`}>
+          {/* ④ Reviews (own build) — list is taken out of flow so it never grows the card; overflow fades to white. */}
+          <section className={card}>
             <SectionHeader title={t.review.pageTitle} href="/reviews" />
-            <LatestReviews />
+            <div className="relative min-h-40 flex-1">
+              {/* -inset-x-1 + px-1/pt-1 leave room so the review cards' shadows aren't clipped. */}
+              <div className="absolute -inset-x-1 inset-y-0 overflow-hidden px-1 pt-1">
+                <LatestReviews />
+              </div>
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white to-transparent" />
+            </div>
           </section>
         </div>
       </div>
