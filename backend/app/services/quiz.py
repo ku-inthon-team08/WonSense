@@ -1,14 +1,11 @@
 import random
-from datetime import date, datetime, timedelta, timezone
 
 import anthropic
 from pydantic import BaseModel
 
-KST = timezone(timedelta(hours=9))
-RECENT_DAYS = 7  # 이 기간 안에 나온 품목은 다시 내지 않는다
 MODEL = "claude-opus-5-5"
 
-SYSTEM_PROMPT = """You write a daily price-guessing quiz for foreigners visiting or living in Seoul.
+SYSTEM_PROMPT = """You write a price-guessing quiz for foreigners visiting or living in Seoul.
 
 Rules:
 - Write in natural, friendly English. Give the item's English name with the Korean name in parentheses.
@@ -24,14 +21,22 @@ class QuizText(BaseModel):
     explanation: str
 
 
-def today_kst() -> date:
-    return datetime.now(KST).date()
+def pick_random(item_ids: list[int], exclude: int | None = None) -> int:
+    """랜덤 품목. 바로 직전 품목(exclude)은 가능하면 피한다."""
+    pool = [i for i in item_ids if i != exclude] or item_ids
+    return random.choice(pool)
 
 
-def pick_item(item_ids: list[int], recent_ids: set[int], day: date) -> int:
-    """오늘의 품목을 고른다. 날짜를 시드로 써서 같은 날에는 항상 같은 품목이 나온다."""
-    fresh = [i for i in sorted(item_ids) if i not in recent_ids]
-    return random.Random(day.isoformat()).choice(fresh or sorted(item_ids))
+def is_correct(guess: int, answer: int, tolerance: float) -> bool:
+    return abs(guess - answer) / answer <= tolerance
+
+
+def fallback_quiz_text(item: dict) -> QuizText:
+    """Claude 호출이 실패해도 퀴즈는 계속 나가도록 하는 고정 문구 (캐시하지 않음)."""
+    return QuizText(
+        question=f"Guess the average price in Seoul: {item['name_ko']} ({item['unit']})",
+        explanation="Prices are averages from Seoul traditional markets and supermarkets.",
+    )
 
 
 def generate_quiz_text(client: anthropic.Anthropic, item: dict, stat: dict) -> QuizText:
