@@ -18,7 +18,7 @@ export function PageShell({ title, description, action, back, children }: Props)
     <>
       <SiteHeader />
       <main className={`${frame} flex-1 py-8 md:py-10`}>
-        {back && <div className="mb-3 text-sm text-brand">{back}</div>}
+        {back && <div className="mb-3 text-sm text-brand-ink">{back}</div>}
         {title && (
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>

@@ -10,7 +10,7 @@ from supabase import Client
 
 from app.db.supabase import get_supabase
 from app.routers.items import get_items, get_menus
-from app.core.claude import get_claude
+from app.core.claude import get_claude, get_llm_model
 from app.services.heatmap import SEOUL_REGION
 from app.services.scan import extract_lines, judge_line, summarize
 
@@ -67,12 +67,13 @@ def scan(
     menus: dict = Depends(get_menus),
     supabase: Client = Depends(get_supabase),
     claude: anthropic.Anthropic = Depends(get_claude),
+    model: str = Depends(get_llm_model),
 ) -> dict:
     """가격표·메뉴판·영수증 사진 한 장을 읽어 품목마다 평균가와 비교하고, 메뉴는 영어로 풀어 준다.
     verdict: cheap(10%↓ 저렴) / fair(±10%) / pricey(10~30% 비쌈) / ripoff(30%↑ 바가지)."""
     image = _decode(body.image)
     try:
-        lines = extract_lines(claude, image, body.media_type, items)
+        lines = extract_lines(claude, image, body.media_type, items, model)
     except (anthropic.APIError, ValueError) as e:
         logger.warning("사진 판독 실패: %s", e)
         raise HTTPException(status_code=502, detail="사진을 읽지 못했습니다. 다시 찍어 주세요")

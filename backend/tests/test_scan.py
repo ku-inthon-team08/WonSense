@@ -1,13 +1,25 @@
 import base64
+import inspect
 from types import SimpleNamespace
 
+import pytest
+from anthropic.resources.messages import Messages
 from fastapi.testclient import TestClient
 
 from app.db.supabase import get_supabase
 from app.main import app
 from app.routers.items import get_items, get_menus
-from app.core.claude import get_claude
-from app.services.scan import ScannedLine, ScanOutput, catalog_text, judge_line, load_reference, summarize, verdict
+from app.core.claude import get_claude, get_llm_model
+from app.services.scan import (
+    ScannedLine,
+    ScanOutput,
+    catalog_text,
+    judge_line,
+    load_reference,
+    parse_scan_json,
+    summarize,
+    verdict,
+)
 
 EGGS = {"item_id": 1, "name_ko": "계란 10개", "unit": "10개", "price_min": 3500, "price_avg": 4000, "price_max": 4800,
         "source": "test", "reference_date": "2026-10-26"}
@@ -172,6 +184,7 @@ class FakeClaude:
         self.output = output
 
     def _parse(self, **kw):
+        inspect.signature(Messages.parse).bind(None, **kw)
         self.calls.append(kw)
         return SimpleNamespace(parsed_output=self.output, stop_reason="end_turn")
 
@@ -203,3 +216,59 @@ def test_scan_endpoint():
         assert client.post("/api/scan", json={"image": image}).status_code == 502
     finally:
         app.dependency_overrides.clear()
+
+
+class FakeGatewayLLM:
+    """Anthropic 호환 게이트웨이(DeepSeek 등): messages.create만 쓰고 텍스트로 JSON을 돌려준다."""
+
+    def __init__(self, text):
+        self.calls = []
+        self.text = text
+        self.messages = SimpleNamespace(create=self._create)
+
+    def _create(self, **kw):
+        # 진짜 SDK에 없는 인자를 보내면 실제 서버에서처럼 TypeError가 나게 한다
+        inspect.signature(Messages.create).bind(None, **kw)
+        self.calls.append(kw)
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text=self.text)], stop_reason="end_turn")
+
+
+def test_parse_scan_json_tolerates_fences_and_rejects_bad_output():
+    out = ScanOutput(lines=[line()])
+    assert parse_scan_json(f"```json\n{out.model_dump_json()}\n```") == out
+    assert parse_scan_json(f"Here you go: {out.model_dump_json()} Done.") == out
+    with pytest.raises(ValueError):
+        parse_scan_json("no json here")
+    with pytest.raises(ValueError):
+        parse_scan_json('{"lines": [{"name": "계란"}]}')
+
+
+def test_scan_endpoint_with_non_claude_model():
+    llm = FakeGatewayLLM(ScanOutput(lines=[line()]).model_dump_json())
+    app.dependency_overrides[get_items] = lambda: [EGGS, RAMYEON]
+    app.dependency_overrides[get_menus] = lambda: MENUS
+    app.dependency_overrides[get_supabase] = lambda: FakeSupabase()
+    app.dependency_overrides[get_claude] = lambda: llm
+    app.dependency_overrides[get_llm_model] = lambda: "deepseek-ai/DeepSeek-V4.1-Flash"
+    image = "data:image/png;base64," + base64.b64encode(b"fake-png").decode()
+    try:
+        client = TestClient(app)
+        body = client.post("/api/scan", json={"image": image, "media_type": "image/png"}).json()
+        assert body["lines"][0]["matched"] is True
+        sent = llm.calls[0]
+        assert sent["model"] == "deepseek-ai/DeepSeek-V4.1-Flash"
+        assert "output_config" not in sent and "output_format" not in sent  # Claude 전용 옵션은 보내지 않는다
+        assert '"lines"' in sent["system"] and "1 | 계란 10개 | 10개" in sent["system"]
+        assert sent["messages"][0]["content"][0]["type"] == "image"
+
+        llm.text = "sorry, I can't read this"
+        assert client.post("/api/scan", json={"image": image}).status_code == 502
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_blank_llm_model_falls_back_to_claude():
+    from app.core.config import Settings
+
+    s = Settings(supabase_url="https://x.supabase.co", supabase_service_role_key="k", llm_model="  ")
+    assert s.llm_model == "claude-haiku-5-5"

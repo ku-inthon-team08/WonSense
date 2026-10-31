@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { quizFeedback, t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 import type { GuessQuizData, Outcome } from "./types";
 
 // backend/app/services/quiz.py의 grade()와 같은 규칙
@@ -12,6 +12,7 @@ function grade(guess: number, q: GuessQuizData): Outcome["result"] {
 }
 
 export function GuessQuiz({ quiz, onAnswer }: { quiz: GuessQuizData; onAnswer: (o: Outcome) => void }) {
+  const t = useT();
   const [digits, setDigits] = useState("");
   const [error, setError] = useState("");
 
@@ -20,11 +21,7 @@ export function GuessQuiz({ quiz, onAnswer }: { quiz: GuessQuizData; onAnswer: (
     const value = Number(digits);
     if (!digits || value <= 0) return setError(t.quizNeedNumber);
     const result = grade(value, quiz);
-    onAnswer({
-      result,
-      feedback: quizFeedback.guess(result, value > quiz.answer_price ? "high" : "low", quiz.answer_price),
-      tip: quiz.tip,
-    });
+    onAnswer({ result, direction: value > quiz.answer_price ? "high" : "low" });
   }
 
   return (
@@ -41,12 +38,12 @@ export function GuessQuiz({ quiz, onAnswer }: { quiz: GuessQuizData; onAnswer: (
               setError("");
             }}
             className="w-full bg-transparent py-2 text-right text-lg outline-none"
-            aria-label="가격 (원)"
+            aria-label={t.quizPriceLabel}
             autoFocus
           />
           <span className="ml-1 text-slate-500">{t.quizWon}</span>
         </label>
-        <button className="rounded-lg bg-brand px-5 py-2 font-medium text-white">OK</button>
+        <button className="rounded-lg bg-brand px-5 py-2 font-medium text-slate-900">OK</button>
       </div>
       {error && <p className="text-sm text-rose-600">{error}</p>}
     </form>

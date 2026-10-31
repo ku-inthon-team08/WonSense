@@ -14,7 +14,7 @@ import {
   type ReviewFields,
   type StoreRef,
 } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { StorePicker, type StoreChoice } from "./StorePicker";
 
@@ -36,6 +36,7 @@ type Props =
   | { mode: "edit"; review: Review; password: string; onSaved: (r: Review) => void; onCancel: () => void };
 
 export function ReviewForm(props: Props) {
+  const t = useT();
   const router = useRouter();
   const initial = props.mode === "edit" ? props.review : null;
 
@@ -160,7 +161,7 @@ export function ReviewForm(props: Props) {
               aria-pressed={feeling === f}
               onClick={() => setFeeling(feeling === f ? null : f)}
               className={`rounded-full border px-3 py-1.5 text-sm ${
-                feeling === f ? "border-brand bg-brand text-white" : "border-slate-300 bg-white text-slate-700"
+                feeling === f ? "border-brand bg-brand text-slate-900" : "border-slate-300 bg-white text-slate-700"
               }`}
             >
               {t.priceFeeling[f]}
@@ -214,7 +215,7 @@ export function ReviewForm(props: Props) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-slate-900 disabled:opacity-50"
         >
           {saving ? t.review.saving : props.mode === "create" ? t.review.submit : t.review.save}
         </button>

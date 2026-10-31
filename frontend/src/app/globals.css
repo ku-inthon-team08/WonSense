@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-brand: #be9c34;
-  --color-brand-pale: #ece4d2;
-  --shadow-card: 0 1px 2px rgb(92 74 30 / 0.06), 0 4px 14px rgb(92 74 30 / 0.08);
+  /* 채움(버튼·점·아이콘 바탕). 밝은 호박색이라 위에 올리는 글씨는 흰색이 아니라 어두운 색(text-slate-900)을 쓴다 */
+  --color-brand: #f2a81d;
+  /* 흰 바탕 위 글씨·링크용 진한 호박색 (흰 바탕 대비 4.5:1 이상) */
+  --color-brand-ink: #9a5a00;
+  /* 페이지 배경 (따뜻한 크림색) */
+  --color-brand-pale: #fbf6ec;
+  /* 칩·태그·연한 강조 바탕 */
+  --color-brand-soft: #fdecc8;
+  --shadow-card: 0 1px 2px rgb(120 84 20 / 0.05), 0 8px 24px rgb(120 84 20 / 0.07);
   --font-sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
 }
 

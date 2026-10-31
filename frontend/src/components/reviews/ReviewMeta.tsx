@@ -1,5 +1,26 @@
-import type { PriceFeeling, Store } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+"use client";
+
+import type { PriceFeeling, Store, StoreCategory } from "@/lib/reviews";
+import { useDistrictName, useT } from "@/lib/i18n";
+
+// 리뷰에 사진이 없어서, 홈 리뷰 목록 왼쪽 썸네일 자리에 가게 종류 그림을 둔다.
+const categoryIcon: Record<StoreCategory, string> = {
+  restaurant: "🍽️",
+  cafe: "☕",
+  bar: "🍺",
+  convenience: "🏪",
+  market: "🛒",
+  shop: "🛍️",
+  other: "📍",
+};
+
+export function CategoryTile({ category }: { category: StoreCategory | undefined }) {
+  return (
+    <span aria-hidden className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-soft text-2xl">
+      {categoryIcon[category ?? "other"] ?? categoryIcon.other}
+    </span>
+  );
+}
 
 const feelingStyle: Record<PriceFeeling, string> = {
   cheap: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -8,6 +29,7 @@ const feelingStyle: Record<PriceFeeling, string> = {
 };
 
 export function PriceFeelingBadge({ feeling }: { feeling: PriceFeeling }) {
+  const t = useT();
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${feelingStyle[feeling]}`}>
       {t.priceFeeling[feeling]}
@@ -16,6 +38,7 @@ export function PriceFeelingBadge({ feeling }: { feeling: PriceFeeling }) {
 }
 
 export function Stars({ rating }: { rating: number }) {
+  const t = useT();
   return (
     <span className="text-amber-500" aria-label={`${t.review.rating} ${rating}/5`}>
       {"★".repeat(rating)}
@@ -25,6 +48,8 @@ export function Stars({ rating }: { rating: number }) {
 }
 
 export function StoreTag({ store }: { store: Store }) {
+  const t = useT();
+  const dn = useDistrictName();
   return (
     <span className="inline-flex items-center gap-1 text-sm text-slate-600">
       <span aria-hidden>📍</span>
@@ -34,7 +59,7 @@ export function StoreTag({ store }: { store: Store }) {
       {store.district && (
         <>
           <span className="text-slate-400">·</span>
-          {store.district}
+          {dn(store.district)}
         </>
       )}
     </span>
