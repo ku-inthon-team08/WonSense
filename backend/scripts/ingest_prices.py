@@ -57,7 +57,8 @@ def main() -> None:
     supabase = get_supabase()
 
     names = sorted({name for name, _, _ in stats})
-    units = {r["A_NAME"].strip(): (r.get("A_UNIT") or "").strip() for r in rows}
+    # A_UNIT은 항상 비어 있으므로 UNIT(10kg) + QY(1포)로 단위를 만든다
+    units = {r["A_NAME"].strip(): f"{r.get('UNIT') or ''} {r.get('QY') or ''}".strip() for r in rows}
     supabase.table("items").upsert(
         [
             {"source_key": n, "name_ko": n, "name_en": n, "category": "grocery", "unit": units.get(n) or "-"}
