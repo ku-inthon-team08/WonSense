@@ -7,7 +7,7 @@ from supabase import Client
 from app.core.config import get_settings
 from app.db.supabase import get_supabase
 from app.services.heatmap import SEOUL_REGION
-from app.services.quiz import QuizText, fallback_quiz_text, generate_quiz_text, pick_random
+from app.services.quiz import QuizText, fallback_quiz_text, generate_quiz_text, make_question, pick_random
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
@@ -20,7 +20,7 @@ def get_claude() -> anthropic.Anthropic:
 def _latest_seoul_stats(supabase: Client, item_ids: list[int]) -> dict[int, dict]:
     rows = (
         supabase.table("price_stats")
-        .select("item_id, price_min, price_avg, price_max, source, reference_date")
+        .select("item_id, price_avg, source, reference_date")
         .in_("item_id", item_ids)
         .eq("region", SEOUL_REGION)
         .order("reference_date", desc=True)
@@ -37,7 +37,7 @@ def _quiz_text(supabase: Client, claude: anthropic.Anthropic, item: dict, stat: 
     """캐시에 있으면 그대로 쓰고, 없으면 Claude로 만들어 저장한다. 실패하면 고정 문구."""
     cached = (
         supabase.table("quiz_texts")
-        .select("question, explanation")
+        .select("name_en, tip")
         .eq("item_id", item["id"])
         .eq("reference_date", stat["reference_date"])
         .execute()
@@ -47,7 +47,7 @@ def _quiz_text(supabase: Client, claude: anthropic.Anthropic, item: dict, stat: 
         return QuizText(**cached[0])
 
     try:
-        text = generate_quiz_text(claude, item, stat)
+        text = generate_quiz_text(claude, item)
     except (anthropic.APIError, ValueError):
         return fallback_quiz_text(item)
 
@@ -55,8 +55,8 @@ def _quiz_text(supabase: Client, claude: anthropic.Anthropic, item: dict, stat: 
         {
             "item_id": item["id"],
             "reference_date": stat["reference_date"],
-            "question": text.question,
-            "explanation": text.explanation,
+            "name_en": text.name_en,
+            "tip": text.tip,
         },
         on_conflict="item_id,reference_date",
         ignore_duplicates=True,
@@ -70,11 +70,11 @@ def get_random_quiz(
     supabase: Client = Depends(get_supabase),
     claude: anthropic.Anthropic = Depends(get_claude),
 ) -> dict:
-    """랜덤 퀴즈 한 문제. 로그인이 없으므로 정답과 해설을 함께 보내고 채점은 프론트에서 한다.
+    """랜덤 퀴즈 한 문제. 로그인이 없으므로 정답과 팁을 함께 보내고 채점은 프론트에서 한다.
     exclude: 직전 품목 id (같은 문제가 연속으로 나오지 않게)."""
     items = (
         supabase.table("items")
-        .select("id, name_ko, unit, quiz_tolerance_correct")
+        .select("id, name_ko, unit, quiz_tolerance_correct, quiz_tolerance_close")
         .eq("quiz_enabled", True)
         .execute()
         .data
@@ -91,14 +91,14 @@ def get_random_quiz(
 
     return {
         "item_id": item_id,
-        "name": item["name_ko"],
+        "name_ko": item["name_ko"],
+        "name_en": text.name_en,
         "unit": item["unit"],
-        "question": text.question,
-        "explanation": text.explanation,
+        "question": make_question(text.name_en, item["name_ko"]),
         "answer_price": stat["price_avg"],
-        "price_min": stat["price_min"],
-        "price_max": stat["price_max"],
-        "tolerance": float(item["quiz_tolerance_correct"]),
+        "tolerance_correct": float(item["quiz_tolerance_correct"]),
+        "tolerance_close": float(item["quiz_tolerance_close"]),
+        "tip": text.tip,
         "source": stat["source"],
         "reference_date": stat["reference_date"],
     }
