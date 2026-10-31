@@ -128,9 +128,9 @@ function SearchForm({ initial, onSearch }: { initial: string; onSearch: (q: stri
         onChange={(e) => setInput(e.target.value)}
         placeholder={t.review.searchPlaceholder}
         aria-label={t.review.search}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500"
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand"
       />
-      <button type="submit" className="shrink-0 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white">
+      <button type="submit" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white">
         {t.review.search}
       </button>
     </form>

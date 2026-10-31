@@ -9,7 +9,7 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
   return (
     <Link
       href={`/reviews/${review.id}`}
-      className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:shadow-sm"
+      className="block rounded-xl bg-white p-4 shadow-card transition hover:ring-1 hover:ring-brand/50"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold text-slate-900 line-clamp-1">{review.title}</h3>

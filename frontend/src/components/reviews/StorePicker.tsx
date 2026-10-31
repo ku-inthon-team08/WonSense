@@ -9,7 +9,7 @@ import { StoreTag } from "./ReviewMeta";
 
 export type StoreChoice = { kind: "existing"; store: Store } | { kind: "new"; store: NewStore } | null;
 
-const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500";
+const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand";
 
 // Pick an existing store (autocomplete on GET /api/stores) or describe a new one.
 // The backend reuses a store with the same name + district, so duplicates are harmless.
@@ -39,7 +39,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
         <StoreTag store={value.store} />
-        <button type="button" onClick={() => onChange(null)} className="text-sm text-indigo-600">
+        <button type="button" onClick={() => onChange(null)} className="text-sm text-brand">
           {t.review.storeChange}
         </button>
       </div>
@@ -58,7 +58,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
             aria-label={t.review.store}
             className={inputClass}
           />
-          <button type="button" onClick={() => onChange(null)} className="shrink-0 text-sm text-indigo-600">
+          <button type="button" onClick={() => onChange(null)} className="shrink-0 text-sm text-brand">
             {t.review.storeChange}
           </button>
         </div>
@@ -126,7 +126,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onChange({ kind: "existing", store: s })}
-                className="w-full px-3 py-2 text-left hover:bg-indigo-50"
+                className="w-full px-3 py-2 text-left hover:bg-brand-pale"
               >
                 <StoreTag store={s} />
               </button>
@@ -137,7 +137,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChange({ kind: "new", store: { name, category: "restaurant", district: null } })}
-              className="w-full px-3 py-2 text-left text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+              className="w-full px-3 py-2 text-left text-sm font-medium text-brand hover:bg-brand-pale"
             >
               + {t.review.storeNew(name)}
             </button>

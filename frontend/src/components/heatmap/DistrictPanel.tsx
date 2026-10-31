@@ -33,7 +33,7 @@ export function DistrictPanel({ district, item, onClose }: Props) {
   }, []);
 
   return (
-    <section ref={ref} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-live="polite">
+    <section ref={ref} className="rounded-2xl bg-white p-4 shadow-card" aria-live="polite">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold">{district.name}</h2>

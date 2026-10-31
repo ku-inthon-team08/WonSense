@@ -75,7 +75,7 @@ export function ReviewDetail() {
 
   if (editPassword) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl bg-white p-5 shadow-card">
         <h1 className="mb-4 text-xl font-bold">{t.review.editTitle}</h1>
         <ReviewForm
           mode="edit"
@@ -94,7 +94,7 @@ export function ReviewDetail() {
   const edited = review.updated_at !== review.created_at;
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl bg-white p-5 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-xl font-bold">{review.title}</h1>
         {review.rating != null && <Stars rating={review.rating} />}
@@ -112,11 +112,11 @@ export function ReviewDetail() {
       </p>
 
       {(review.paid_price != null || review.price_feeling) && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-indigo-50 px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-stone-100 px-4 py-3">
           {review.paid_price != null && (
             <span>
               <span className="text-sm text-slate-600">{t.review.paid} </span>
-              <span className="text-lg font-bold text-indigo-700">{formatKrw(review.paid_price)}</span>
+              <span className="text-lg font-bold text-brand">{formatKrw(review.paid_price)}</span>
             </span>
           )}
           {review.price_feeling && <PriceFeelingBadge feeling={review.price_feeling} />}
