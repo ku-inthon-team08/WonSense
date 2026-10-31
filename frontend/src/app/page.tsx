@@ -1,6 +1,7 @@
 import { SearchBar } from "@/components/SearchBar";
 import { SectionHeader } from "@/components/SectionHeader";
 import { QuizCard } from "@/components/quiz/QuizCard";
+import { LatestReviews } from "@/components/reviews/LatestReviews";
 import { t } from "@/lib/strings";
 
 export default function Home() {
@@ -38,9 +39,7 @@ export default function Home() {
           {/* ④ Reviews (own build) */}
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <SectionHeader num={4} title={t.reviewTitle} href="/reviews" />
-            <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-              {t.reviewEmpty}
-            </div>
+            <LatestReviews />
           </section>
         </div>
       </div>
