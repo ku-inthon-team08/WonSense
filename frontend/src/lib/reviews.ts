@@ -96,5 +96,5 @@ export function searchStores(q: string, limit = 8) {
 }
 
 export const formatKrw = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-export const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "short", day: "numeric" });
+export const formatDate = (iso: string, locale = "ko-KR") =>
+  new Date(iso).toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });

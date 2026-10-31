@@ -14,7 +14,7 @@ import {
   type ReviewFields,
   type StoreRef,
 } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { StorePicker, type StoreChoice } from "./StorePicker";
 
@@ -36,6 +36,7 @@ type Props =
   | { mode: "edit"; review: Review; password: string; onSaved: (r: Review) => void; onCancel: () => void };
 
 export function ReviewForm(props: Props) {
+  const t = useT();
   const router = useRouter();
   const initial = props.mode === "edit" ? props.review : null;
 

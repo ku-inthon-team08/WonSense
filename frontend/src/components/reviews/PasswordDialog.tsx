@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 // Asks for the review's password and runs `onConfirm` with it. Errors (403 wrong / 429 locked)
 // come back from the backend as readable messages and are shown inline.
@@ -17,6 +17,7 @@ export function PasswordDialog({
   onConfirm: (password: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

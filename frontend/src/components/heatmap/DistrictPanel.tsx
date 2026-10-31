@@ -10,7 +10,7 @@ import {
   type HeatmapItem,
 } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 
 type Props = {
   district: HeatmapDistrict;
@@ -19,6 +19,8 @@ type Props = {
 };
 
 export function DistrictPanel({ district, item, onClose }: Props) {
+  const t = useT();
+  const dn = useDistrictName();
   const detail = useApi(item ? null : `district:${district.region}`, (signal) =>
     getDistrictDetail(district.region, { signal }),
   );
@@ -36,7 +38,7 @@ export function DistrictPanel({ district, item, onClose }: Props) {
     <section ref={ref} className="rounded-2xl bg-white p-4 shadow-card" aria-live="polite">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold">{district.name}</h2>
+          <h2 className="text-lg font-bold">{dn(district.name)}</h2>
           {item ? (
             <p className="text-sm text-slate-600">
               {t.heatmapVsSeoul}{" "}
@@ -63,7 +65,7 @@ export function DistrictPanel({ district, item, onClose }: Props) {
         district.price_avg != null && (
           <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-lg bg-slate-50 p-3">
-              <dt className="text-slate-500">{district.name}</dt>
+              <dt className="text-slate-500">{dn(district.name)}</dt>
               <dd className="text-lg font-bold tabular-nums">{formatWon(district.price_avg)}</dd>
             </div>
             <div className="rounded-lg bg-slate-50 p-3">
@@ -87,6 +89,7 @@ export function DistrictPanel({ district, item, onClose }: Props) {
 }
 
 function ItemList({ title, items }: { title: string; items: DistrictItem[] }) {
+  const t = useT();
   return (
     <div>
       <h3 className="mb-1 text-sm font-semibold text-slate-700">{title}</h3>

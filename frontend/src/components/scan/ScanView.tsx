@@ -6,7 +6,8 @@ import { CameraIcon } from "@/components/icons/CameraIcon";
 import { formatKrw } from "@/lib/reviews";
 import { rejudge, scanPhoto, shrinkPhoto, type ScanLine, type ScanResponse, type Verdict } from "@/lib/scan";
 import { SEOUL_DISTRICTS } from "@/lib/seoulDistricts";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
+import type { Strings } from "@/lib/strings";
 
 const card = "rounded-2xl bg-white p-5 shadow-card";
 
@@ -27,6 +28,8 @@ type State =
   | { step: "error"; photo: string | null; message: string };
 
 export function ScanView() {
+  const t = useT();
+  const dn = useDistrictName();
   const [state, setState] = useState<State>({ step: "idle" });
   const [district, setDistrict] = useState("");
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -59,7 +62,7 @@ export function ScanView() {
           >
             <option value="">{t.scan.districtNone}</option>
             {districtNames.map((name) => (
-              <option key={name} value={name}>{name}</option>
+              <option key={name} value={name}>{dn(name)}</option>
             ))}
           </select>
         </label>
@@ -125,7 +128,8 @@ export function ScanView() {
 }
 
 // Which average the total was compared with: the district, Seoul, or both when lines mix.
-function summaryRef(lines: ScanLine[], district: string): string {
+function summaryRef(t: Strings, lines: ScanLine[], district: string): string {
+  // district is already the display name (English in English mode)
   const matched = lines.filter((l) => l.matched);
   if (matched.some((l) => l.basis === "menu")) return t.scan.mixedRef;
   const local = matched.filter((l) => l.compare_region).length;
@@ -134,6 +138,8 @@ function summaryRef(lines: ScanLine[], district: string): string {
 }
 
 function ScanResult({ result, district }: { result: ScanResponse; district: string }) {
+  const t = useT();
+  const dn = useDistrictName();
   const { lines, summary } = result;
   if (lines.length === 0) {
     return <p className="py-6 text-center text-slate-500">{t.scan.noPrices}</p>;
@@ -145,7 +151,7 @@ function ScanResult({ result, district }: { result: ScanResponse; district: stri
           <p className="text-sm">{t.scan.summary(summary.matched_count)}</p>
           <p className="mt-1 text-2xl font-bold">{t.scan.verdict[summary.verdict]}</p>
           <p className="mt-1 text-sm">
-            {formatKrw(summary.total_price!)} · {t.scan.diff(summary.diff_pct!, summaryRef(lines, district))}
+            {formatKrw(summary.total_price!)} · {t.scan.diff(summary.diff_pct!, summaryRef(t, lines, dn(district)))}
           </p>
         </section>
       )}
@@ -163,9 +169,11 @@ function ScanResult({ result, district }: { result: ScanResponse; district: stri
 }
 
 function LineCard({ line, district }: { line: ScanLine; district: string }) {
+  const t = useT();
+  const dn = useDistrictName();
   const [low, high] = line.seoul_range ?? [null, null];
   const ref =
-    line.basis === "menu" ? t.scan.menuRef : line.compare_region ? t.scan.districtAvg(line.compare_region) : t.scan.seoulAvg;
+    line.basis === "menu" ? t.scan.menuRef : line.compare_region ? t.scan.districtAvg(dn(line.compare_region)) : t.scan.seoulAvg;
   return (
     <article className={card}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -197,7 +205,7 @@ function LineCard({ line, district }: { line: ScanLine; district: string }) {
               <dd className="text-lg font-bold">{formatKrw(line.price)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">{ref}</dt>
+              <dt className="text-slate-500">{line.basis === "menu" ? t.scan.menuRefTitle : ref}</dt>
               <dd className="text-lg font-bold">{formatKrw(line.compare_avg!)}</dd>
             </div>
             {line.compare_region && (
@@ -220,7 +228,7 @@ function LineCard({ line, district }: { line: ScanLine; district: string }) {
           {district && !line.compare_region && line.basis !== "menu" && <p className="mt-1 text-xs text-slate-500">{t.scan.seoulOnly}</p>}
           {line.cheapest_district && (
             <p className="mt-1 text-sm text-slate-600">
-              {t.scan.cheapest(line.cheapest_district.name, formatKrw(line.cheapest_district.price_avg))}
+              {t.scan.cheapest(dn(line.cheapest_district.name), formatKrw(line.cheapest_district.price_avg))}
             </p>
           )}
           <p className="mt-3 text-xs text-slate-500">
@@ -242,6 +250,7 @@ function LineCard({ line, district }: { line: ScanLine; district: string }) {
 
 // Menu translation: what the dish is, how spicy, what's in it. Shown even when there's no price to compare.
 function Translation({ line }: { line: ScanLine }) {
+  const t = useT();
   const isFood = line.spice_level !== null || line.vegetarian !== null || line.contains.length > 0;
   if (!line.description_en && !isFood) return null;
   const pill = "rounded-full px-2.5 py-0.5 text-xs font-medium";

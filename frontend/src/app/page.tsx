@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { SearchBar } from "@/components/SearchBar";
@@ -6,13 +8,14 @@ import { HeatmapPreview } from "@/components/heatmap/HeatmapPreview";
 import { SectionHeader } from "@/components/SectionHeader";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { LatestReviews } from "@/components/reviews/LatestReviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 import { card, frame } from "@/lib/ui";
 import { Nanum_Gothic } from "next/font/google";
 
 const taglineFont = Nanum_Gothic({ weight: "700", subsets: ["latin"] });
 
 export default function Home() {
+  const t = useT();
   return (
     <main className="flex flex-1 flex-col">
       {/* Top band: logo + tagline + ① Search */}
