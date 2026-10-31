@@ -21,11 +21,7 @@ export function GuessQuiz({ quiz, onAnswer }: { quiz: GuessQuizData; onAnswer: (
     const value = Number(digits);
     if (!digits || value <= 0) return setError(t.quizNeedNumber);
     const result = grade(value, quiz);
-    onAnswer({
-      result,
-      feedback: t.quizFeedback.guess(result, value > quiz.answer_price ? "high" : "low", quiz.answer_price),
-      tip: quiz.tip,
-    });
+    onAnswer({ result, direction: value > quiz.answer_price ? "high" : "low" });
   }
 
   return (

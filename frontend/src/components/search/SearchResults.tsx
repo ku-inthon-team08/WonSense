@@ -124,7 +124,7 @@ function ResultCard({ item }: { item: SearchItem }) {
         {t.search.average} <strong>{formatKrw(item.price_avg)}</strong>
       </p>
       <p className="mt-2 text-xs text-slate-500">
-        {t.search.source}: {item.source} · {t.search.referenceDate} {item.reference_date} ·{" "}
+        {t.search.source}: {t.sourceName(item.source)} · {t.search.referenceDate} {item.reference_date} ·{" "}
         {t.search.districts(item.district_count)}
       </p>
     </article>
@@ -169,7 +169,7 @@ function MenuCard({ menu }: { menu: MenuResult }) {
         </ul>
       )}
       <p className="mt-2 text-xs text-slate-500">
-        {t.search.source}: {menu.source}
+        {t.search.source}: {t.sourceName(menu.source)}
         {menu.reference_date && ` · ${t.search.referenceDate} ${menu.reference_date}`} ·{" "}
         {t.search.stores(menu.store_count)}
       </p>
@@ -201,7 +201,7 @@ function ProductCard({ product }: { product: ProductResult }) {
         )}
       </p>
       <p className="mt-2 text-xs text-slate-500">
-        {t.search.source}: {product.source} · {t.search.referenceDate} {product.reference_date} ·{" "}
+        {t.search.source}: {t.sourceName(product.source)} · {t.search.referenceDate} {product.reference_date} ·{" "}
         {t.search.stores(product.store_count)}
         {product.manufacturer && ` · ${product.manufacturer}`}
       </p>

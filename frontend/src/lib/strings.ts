@@ -208,6 +208,7 @@ const ko = {
     quizPriceLabel: "가격 (원)",
     quizShownPrice: (n: number) => `${krw(n)}원`,
     // null = keep the question the server sent (it's already Korean)
+    quizGuessQuestion: null as ((name: string) => string) | null,
     quizHigherLowerQuestion: null as ((target: string, base: string, basePrice: number) => string) | null,
     quizMenuQuestion: null as ((menu: string, price: number) => string) | null,
     // 퀴즈 결과 한 줄 피드백. 가격 뒤에는 항상 '원이에요'라서 받침 걱정이 없다.
@@ -226,11 +227,22 @@ const ko = {
         return `${verdict}. 착한가격업소는 보통 ${krw(low)}~${krw(high)}원이에요.`;
       },
     },
+    lang: "ko" as "ko" | "en",
     dateLocale: "ko-KR",
+    // Data sources arrive from the backend as Korean text; the English set maps the known ones.
+    sourceName: (source: string): string => source,
 };
 
 export type Strings = typeof ko;
 export type Locale = "ko" | "en";
+
+// Source labels the backend sends (backend/scripts/ingest_prices.py, app/services/quiz.py, app/routers/items.py).
+const EN_SOURCES: Record<string, string> = {
+  "서울 열린데이터광장 생필품 농수축산물 가격": "Seoul Open Data Plaza, daily necessities prices",
+  "서울시 착한가격업소 기준": "Seoul good-price restaurants",
+  "서울시 가격안정 모범업소(착한가격업소) 상품목록": "Seoul good-price restaurants menu list",
+  "한국소비자원 참가격 생필품 가격 (전국 마트·편의점)": "Korea Consumer Agency price survey (supermarkets & convenience stores nationwide)",
+};
 
 const en: Strings = {
   appName: "WonSense",
@@ -439,6 +451,8 @@ const en: Strings = {
   heatmapBinAbove: (v: string) => `${v} or more`,
   quizPriceLabel: "Price (won)",
   quizShownPrice: (n: number) => `₩${krw(n)}`,
+  // The item name is already shown in the chip above, and names like "Eggs, 10" don't fit inside a sentence.
+  quizGuessQuestion: () => "What does this cost on average in Seoul?",
   quizHigherLowerQuestion: (target: string, base: string, basePrice: number) =>
     `Is ${target} pricier or cheaper than ${base} (₩${krw(basePrice)})?`,
   quizMenuQuestion: (menu: string, price: number) =>
@@ -458,7 +472,9 @@ const en: Strings = {
       return `${verdict}. Good-price restaurants usually charge ₩${krw(low)}–₩${krw(high)}.`;
     },
   },
+  lang: "en",
   dateLocale: "en-US",
+  sourceName: (source: string): string => EN_SOURCES[source] ?? source,
 };
 
 export const strings: Record<Locale, Strings> = { ko, en };
