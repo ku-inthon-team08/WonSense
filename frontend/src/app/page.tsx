@@ -1,5 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { SearchBar } from "@/components/SearchBar";
+import { CameraIcon } from "@/components/icons/CameraIcon";
 import { HeatmapPreview } from "@/components/heatmap/HeatmapPreview";
 import { SectionHeader } from "@/components/SectionHeader";
 import { QuizCard } from "@/components/quiz/QuizCard";
@@ -26,6 +28,13 @@ export default function Home() {
             <p className={`${taglineFont.className} translate-y-1 text-base text-brand-pale md:text-xl`}>{t.tagline}</p>
           </div>
           <SearchBar />
+          <Link
+            href="/scan"
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
+          >
+            <CameraIcon className="h-5 w-5" />
+            {t.scan.entry}
+          </Link>
         </div>
       </header>
 
