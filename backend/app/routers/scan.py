@@ -10,7 +10,7 @@ from supabase import Client
 
 from app.db.supabase import get_supabase
 from app.routers.items import get_items
-from app.routers.quiz import get_claude
+from app.core.claude import get_claude
 from app.services.heatmap import SEOUL_REGION
 from app.services.scan import extract_lines, judge_line, summarize
 
