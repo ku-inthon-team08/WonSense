@@ -23,11 +23,28 @@ function errorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+// fetch() itself rejects (no status) when the server is unreachable or CORS blocks the request.
+function networkErrorMessage(): string {
+  const pointsAtLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(API_URL);
+  const onLocalhost =
+    typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (pointsAtLocalhost && !onLocalhost) {
+    // Deployed build without NEXT_PUBLIC_API_URL: it fell back to the visitor's own machine.
+    return "서버 주소가 설정되지 않았어요 (NEXT_PUBLIC_API_URL). 배포 설정을 확인해 주세요.";
+  }
+  return "서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.";
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch {
+    throw new ApiError(0, networkErrorMessage());
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new ApiError(res.status, errorMessage(body, `${res.status} ${res.statusText}`));
