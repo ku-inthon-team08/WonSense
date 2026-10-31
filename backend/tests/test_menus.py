@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routers.items import get_items, get_menus, get_products
+from app.routers.items import get_items, get_menus, get_products, get_restaurants
 from app.services.menus import match_keywords, price_stats, search_menus
 from scripts.ingest_menus import district_code, to_records
 
@@ -86,6 +86,7 @@ def test_search_endpoint_returns_menus():
     app.dependency_overrides[get_items] = lambda: []
     app.dependency_overrides[get_menus] = lambda: {"rows": ROWS, "districts": DISTRICTS, "reference_date": "2026-11-01"}
     app.dependency_overrides[get_products] = lambda: []
+    app.dependency_overrides[get_restaurants] = lambda: []
     try:
         body = TestClient(app).get("/api/items/search", params={"q": "bibimbap"}).json()
         assert body["menus"] == [] and body["not_covered"] is True  # 비빔밥 메뉴가 없는 데이터

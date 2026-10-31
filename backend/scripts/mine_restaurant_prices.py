@@ -160,6 +160,13 @@ def to_record(place: dict, area: str, menu: str, answer: dict, codes_by_name: di
     }
 
 
+def load_attempts(path: Path) -> set[str]:
+    """이전 실행에서 이미 시도한 장소 ID (가격을 못 찾은 곳 포함). 다시 돌릴 때 비용을 두 번 쓰지 않게 건너뛴다."""
+    if not path.exists():
+        return set()
+    return {json.loads(line)["place_id"] for line in path.read_text().splitlines() if line.strip()}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--areas", nargs="+", default=DEFAULT_AREAS)
@@ -167,6 +174,7 @@ def main() -> None:
     parser.add_argument("--menu", default="삼겹살 1인분", help="가격을 찾을 메뉴")
     parser.add_argument("--per-area", type=int, default=10)
     parser.add_argument("--dry-run", action="store_true", help="DB에 넣지 않고 JSON 파일로만 저장")
+    parser.add_argument("--retry", action="store_true", help="이미 시도한 식당도 다시 찾기")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -180,25 +188,51 @@ def main() -> None:
     codes_by_name = {d["name_ko"]: d["code"] for d in supabase.table("districts").select("code, name_ko").execute().data}
     today = date.today().isoformat()
 
-    records, log = [], []
-    with httpx.Client(timeout=30) as kakao:
-        for area in args.areas:
-            for place in find_places(kakao, settings.kakao_rest_api_key, area, args.query, args.per_area):
-                answer, seen, status = ask_claude(claude, place, args.menu)
-                reason = validate(answer, seen) if answer else status
-                log.append({"area": area, "place": place["place_name"], "place_id": place["id"], "status": reason or "saved",
-                            "answer": answer, "search_result_count": len(seen)})
-                print(f"[{area}] {place['place_name']}: {reason or f'{answer['price']:,}원'}")
-                if reason is None:
-                    records.append(to_record(place, area, args.menu, answer, codes_by_name, today))
-
+    # 시도 기록은 한 줄에 한 식당씩 바로바로 남긴다 (중간에 멈춰도 결과가 남고, 다시 돌리면 이어서 한다)
     OUT_DIR.mkdir(exist_ok=True)
-    out = OUT_DIR / f"restaurant_prices_{today}.json"
-    out.write_text(json.dumps({"records": records, "log": log}, ensure_ascii=False, indent=2))
+    attempts_path = OUT_DIR / f"attempts_{args.menu.replace(' ', '_')}{'_dry' if args.dry_run else ''}.jsonl"
+    done = set() if args.retry else load_attempts(attempts_path)
+    if not args.retry and not args.dry_run:
+        done |= {
+            r["place_id"]
+            for r in supabase.table("restaurant_prices").select("place_id").eq("menu", args.menu).execute().data
+        }
 
-    if not args.dry_run and records:
-        supabase.table("restaurant_prices").upsert(records, on_conflict="place_id,menu").execute()
-    print(f"식당 {len(log)}곳 중 {len(records)}곳 가격 저장{' (dry-run: DB에는 안 넣음)' if args.dry_run else ''} → {out}")
+    tried = saved = skipped = 0
+    stop_reason = None
+    with httpx.Client(timeout=30) as kakao, attempts_path.open("a") as attempts:
+        for area in args.areas:
+            if stop_reason:
+                break
+            for place in find_places(kakao, settings.kakao_rest_api_key, area, args.query, args.per_area):
+                if str(place["id"]) in done:
+                    skipped += 1
+                    continue
+                try:
+                    answer, seen, status = ask_claude(claude, place, args.menu)
+                except anthropic.RateLimitError:
+                    stop_reason = "Claude API 사용량 한도(429)에 걸렸습니다. 잠시 뒤 다시 실행하면 이어서 합니다"
+                    break
+                except anthropic.APIStatusError as e:
+                    # 크레딧 부족·키 오류 등: 더 돌려도 계속 실패하므로 멈춘다
+                    stop_reason = f"Claude API 오류로 멈춥니다 ({e.status_code}): {e.message}"
+                    break
+                tried += 1
+                reason = validate(answer, seen) if answer else status
+                record = None if reason else to_record(place, area, args.menu, answer, codes_by_name, today)
+                if record and not args.dry_run:
+                    supabase.table("restaurant_prices").upsert(record, on_conflict="place_id,menu").execute()
+                saved += record is not None
+                attempts.write(json.dumps({"place_id": str(place["id"]), "area": area, "place": place["place_name"],
+                                           "status": reason or "saved", "answer": answer, "record": record,
+                                           "search_result_count": len(seen), "checked_on": today}, ensure_ascii=False) + "\n")
+                attempts.flush()
+                print(f"[{area}] {place['place_name']}: {reason or f'{answer['price']:,}원'}", flush=True)
+
+    note = " (dry-run: DB에는 안 넣음)" if args.dry_run else ""
+    print(f"이번 실행: {tried}곳 시도, {saved}곳 저장{note}, 이미 한 곳 {skipped}곳 건너뜀 → {attempts_path}")
+    if stop_reason:
+        raise SystemExit(stop_reason)
 
 
 if __name__ == "__main__":

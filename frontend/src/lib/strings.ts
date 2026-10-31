@@ -61,6 +61,13 @@ const ko = {
       productsTitle: "마트·편의점 상품",
       productsNote: "한국소비자원이 전국 마트·편의점에서 조사한 정상가예요 (세일·1+1 제외). '보통'은 판매점별 가격의 가운데 50%예요.",
       convenience: "편의점",
+      webMenusTitle: "일반 식당 시세 (웹 검색 기반 추정)",
+      webMenusNote: "카카오맵의 일반 식당 가격을 Claude가 웹에서 찾은 값이에요. 가격마다 출처가 있고, 틀릴 수 있으니 출처를 확인해 주세요.",
+      byArea: "지역별 중간값",
+      sourceLink: "출처",
+      verified: "확인됨",
+      restaurants: (n: number) => `${n}곳`,
+      verifiedCount: (n: number) => `사람이 확인한 가격 ${n}개`,
       median: "중간값",
       menuRange: (min: string, max: string) => `전체 ${min} ~ ${max}`,
       stores: (n: number) => `${n}곳 조사`,
@@ -242,6 +249,7 @@ const EN_SOURCES: Record<string, string> = {
   "서울시 착한가격업소 기준": "Seoul good-price restaurants",
   "서울시 가격안정 모범업소(착한가격업소) 상품목록": "Seoul good-price restaurants menu list",
   "한국소비자원 참가격 생필품 가격 (전국 마트·편의점)": "Korea Consumer Agency price survey (supermarkets & convenience stores nationwide)",
+  "웹 검색 기반 추정 (식당 목록: 카카오, 가격: Claude 웹 검색)": "Web search estimate (restaurants from Kakao Map, prices found by Claude)",
 };
 
 const en: Strings = {
@@ -303,6 +311,13 @@ const en: Strings = {
     productsNote:
       "Regular prices surveyed by the Korea Consumer Agency at supermarkets and convenience stores nationwide (no sales or 1+1 deals). 'Usually' is the middle 50% of store prices.",
     convenience: "Convenience store",
+    webMenusTitle: "Typical restaurants (web search estimate)",
+    webMenusNote: "Prices of regular restaurants on Kakao Map, found on the web by Claude. Each price links to its source and may be wrong, so check the source.",
+    byArea: "Median by area",
+    sourceLink: "Source",
+    verified: "Verified",
+    restaurants: (n: number) => `${n} restaurant${n === 1 ? "" : "s"}`,
+    verifiedCount: (n: number) => `${n} price${n === 1 ? "" : "s"} checked by a person`,
     median: "Median",
     menuRange: (min: string, max: string) => `Full range ${min} – ${max}`,
     stores: (n: number) => `${n} stores surveyed`,

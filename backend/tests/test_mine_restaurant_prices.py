@@ -47,3 +47,12 @@ def test_to_record_maps_kakao_place():
     assert r["weight_g"] is None  # 0은 "모름"
     assert r["lat"] == 37.56 and r["lng"] == 126.98
     assert r["price"] == 17000 and r["source_url"].startswith("https://blog.naver.com")
+
+
+def test_load_attempts_reads_jsonl(tmp_path):
+    from scripts.mine_restaurant_prices import load_attempts
+
+    p = tmp_path / "attempts.jsonl"
+    assert load_attempts(p) == set()
+    p.write_text('{"place_id": "1", "status": "not_found"}\n{"place_id": "2", "status": "saved"}\n\n')
+    assert load_attempts(p) == {"1", "2"}
