@@ -92,16 +92,14 @@ import { card, frame } from "@/lib/ui";
 
 ### 3.2 상단부 (`HomeHero`)
 
-홈 맨 위. 크림색 바탕에 서울 스카이라인 장식, 왼쪽에 돋보기 든 호랑이, 오른쪽에 로고 + 태그라인 + 검색창 + 스캔 버튼.
+홈 맨 위. 서울 스카이라인 배경 그림 위에, 왼쪽에 로고와 그 밑 호랑이, 오른쪽에 태그라인과 검색창 + 바가지 확인 버튼.
 
 | 항목 | 값 |
 | --- | --- |
-| 배경 | `bg-brand-pale` + `SeoulSkyline` (해·빌딩·남산타워 실루엣, brand 색을 옅게) |
-| 마스코트 | `public/mascot/horangi-3d-search.webp` (돋보기 든 호랑이), 높이 144px / 넓은 화면 176px, **640px 미만에서는 숨김** |
-| 로고 | `Logo` 컴포넌트. `logo_hand_white.png`를 CSS mask로 따서 `brand` 색으로 칠한다. 높이 48px / 데스크톱 64px |
-| 태그라인 | 나눔고딕 Bold, `text-slate-600`, 16px / 데스크톱 20px, 로고 밑선에 맞춤 |
-| 검색창 | `SearchBar`: 흰 알약, 왼쪽 돋보기 아이콘, 오른쪽 둥근 `bg-brand` 검색 버튼 |
-| 스캔 버튼 | `bg-brand-soft` 알약, 카메라 아이콘 + 화살표 |
+| 배경 | `public/hero-bg.webp` (해·구름·남산타워 스카이라인, 2000×711), `bg-cover bg-bottom`, 그림이 없을 때 `bg-brand-pale` |
+| 왼쪽 | `Logo`(높이 48px / 데스크톱 64px) 밑에 `public/mascot/horangi-3d-search.webp`(돋보기 든 호랑이, 높이 128px / 넓은 화면 160px). **640px 미만에서는 호랑이를 숨긴다** |
+| 오른쪽 | 태그라인(나눔고딕 Bold, `text-slate-600`, 16px / 데스크톱 20px) 아래에 `SearchBar` + 오른편 바가지 확인 버튼(`/scan`, `bg-brand-soft` 알약, 높이 56px). 640px 미만에서는 버튼이 검색창 아래로 내려간다 |
+| 로고 | `Logo` 컴포넌트. `logo_hand_white.png`를 CSS mask로 따서 `brand` 색으로 칠한다 |
 
 ### 3.3 상세 페이지 (`/search`, `/quiz`, `/heatmap`, `/reviews/...`)
 
