@@ -1,11 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { PageShell } from "@/components/PageShell";
 import { ReviewList } from "@/components/reviews/ReviewList";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 export default function ReviewsPage() {
+  const t = useT();
   return (
     <PageShell
       title={t.review.pageTitle}

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { listReviews, type Review } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { ReviewCard } from "./ReviewCard";
 
 // Home ④: the newest few reviews.
 export function LatestReviews({ count = 3 }: { count?: number }) {
+  const t = useT();
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [failed, setFailed] = useState(false);
 

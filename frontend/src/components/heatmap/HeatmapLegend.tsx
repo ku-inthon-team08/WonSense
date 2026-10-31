@@ -1,8 +1,11 @@
+"use client";
+
 import { binsFor, ticksFor, type ScaleMode } from "@/lib/heatmap";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 export function HeatmapLegend({ mode }: { mode: ScaleMode }) {
-  const bins = binsFor(mode);
+  const t = useT();
+  const bins = binsFor(mode, t.heatmapBinBelow, t.heatmapBinAbove);
   const ticks = ticksFor(mode);
   return (
     <div className="text-xs text-slate-600">

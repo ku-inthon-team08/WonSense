@@ -1,6 +1,12 @@
-// UI strings kept in one place so the English version (roadmap step 1) is a drop-in.
-export const strings = {
-  ko: {
+// UI strings for both languages. Components read the current language with useT() (src/lib/i18n.ts).
+// `en` must have the same shape as `ko` — the Strings type enforces it.
+
+export type QuizResult = "right" | "near" | "wrong";
+export type QuizDirection = "high" | "low";
+
+const krw = (n: number) => n.toLocaleString("ko-KR");
+
+const ko = {
     appName: "WonSense",
     tagline: "서울 물가 감각의 모든 것",
     goHome: "비싼감? 홈으로",
@@ -55,6 +61,13 @@ export const strings = {
       productsTitle: "마트·편의점 상품",
       productsNote: "한국소비자원이 전국 마트·편의점에서 조사한 정상가예요 (세일·1+1 제외). '보통'은 판매점별 가격의 가운데 50%예요.",
       convenience: "편의점",
+      webMenusTitle: "일반 식당 시세 (웹 검색 기반 추정)",
+      webMenusNote: "카카오맵의 일반 식당 가격을 Claude가 웹에서 찾은 값이에요. 가격마다 출처가 있고, 틀릴 수 있으니 출처를 확인해 주세요.",
+      byArea: "지역별 중간값",
+      sourceLink: "출처",
+      verified: "확인됨",
+      restaurants: (n: number) => `${n}곳`,
+      verifiedCount: (n: number) => `사람이 확인한 가격 ${n}개`,
       median: "중간값",
       menuRange: (min: string, max: string) => `전체 ${min} ~ ${max}`,
       stores: (n: number) => `${n}곳 조사`,
@@ -94,6 +107,7 @@ export const strings = {
       paid: "이 가격",
       seoulAvg: "서울 평균",
       menuRef: "착한가격업소 보통 가격",
+      menuRefTitle: "착한가격업소 보통 가격",
       mixedRef: "기준 가격",
       range: "보통 범위",
       districtAvg: (name: string) => `${name} 평균`,
@@ -192,30 +206,308 @@ export const strings = {
       fair: "적당해요",
       expensive: "비싸요",
     },
-  },
-} as const;
-
-export type Locale = keyof typeof strings;
-export const t = strings.ko;
-
-export type QuizResult = "right" | "near" | "wrong";
-export type QuizDirection = "high" | "low";
-
-const won = (n: number) => n.toLocaleString("ko-KR");
-
-// 퀴즈 결과 한 줄 피드백. 가격 뒤에는 항상 '원이에요'라서 받침 걱정이 없다.
-export const quizFeedback = {
-  guess(result: QuizResult, direction: QuizDirection, avg: number): string {
-    const way = direction === "high" ? "비싸게" : "싸게";
-    if (result === "right") return `평균 ${won(avg)}원이에요.`;
-    if (result === "near") return `조금 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
-    return `너무 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
-  },
-  higherLower(target: string, price: number): string {
-    return `${target}의 평균은 ${won(price)}원이에요.`;
-  },
-  menu(answer: "normal" | "above", low: number, high: number): string {
-    const verdict = answer === "normal" ? "보통 가격이에요" : "비싼 편이에요";
-    return `${verdict}. 착한가격업소는 보통 ${won(low)}~${won(high)}원이에요.`;
-  },
+    languageToggle: "English",
+    languageToggleLabel: "Switch to English",
+    apiNoUrl: "서버 주소가 설정되지 않았어요 (NEXT_PUBLIC_API_URL). 배포 설정을 확인해 주세요.",
+    apiUnreachable: "서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.",
+    heatmapBinBelow: (v: string) => `${v} 이하`,
+    heatmapBinAbove: (v: string) => `${v} 이상`,
+    quizPriceLabel: "가격 (원)",
+    quizShownPrice: (n: number) => `${krw(n)}원`,
+    // null = keep the question the server sent (it's already Korean)
+    quizGuessQuestion: null as ((name: string) => string) | null,
+    quizHigherLowerQuestion: null as ((target: string, base: string, basePrice: number) => string) | null,
+    quizMenuQuestion: null as ((menu: string, price: number) => string) | null,
+    // 퀴즈 결과 한 줄 피드백. 가격 뒤에는 항상 '원이에요'라서 받침 걱정이 없다.
+    quizFeedback: {
+      guess(result: QuizResult, direction: QuizDirection, avg: number): string {
+        const way = direction === "high" ? "비싸게" : "싸게";
+        if (result === "right") return `평균 ${krw(avg)}원이에요.`;
+        if (result === "near") return `조금 ${way} 봤어요. 평균 ${krw(avg)}원이에요.`;
+        return `너무 ${way} 봤어요. 평균 ${krw(avg)}원이에요.`;
+      },
+      higherLower(target: string, price: number): string {
+        return `${target}의 평균은 ${krw(price)}원이에요.`;
+      },
+      menu(answer: "normal" | "above", low: number, high: number): string {
+        const verdict = answer === "normal" ? "보통 가격이에요" : "비싼 편이에요";
+        return `${verdict}. 착한가격업소는 보통 ${krw(low)}~${krw(high)}원이에요.`;
+      },
+    },
+    fx: {
+      title: "오늘의 환율",
+      unit: { USD: "1달러", JPY: "100엔", CNY: "1위안", EUR: "1유로" } as Record<string, string>,
+      vsPrev: "▲▼ 전일 대비",
+      trend: (n: number) => `최근 ${n}일`,
+      asOf: (d: string) => `${d} 기준`,
+      note: "중앙은행 기준 환율이라 실제 환전·카드 결제 금액과는 달라요.",
+      error: "환율 정보를 불러오지 못했어요",
+    },
+    lang: "ko" as "ko" | "en",
+    dateLocale: "ko-KR",
+    // Data sources arrive from the backend as Korean text; the English set maps the known ones.
+    sourceName: (source: string): string => source,
 };
+
+export type Strings = typeof ko;
+export type Locale = "ko" | "en";
+
+// Source labels the backend sends (backend/scripts/ingest_prices.py, app/services/quiz.py, app/routers/items.py).
+const EN_SOURCES: Record<string, string> = {
+  "서울 열린데이터광장 생필품 농수축산물 가격": "Seoul Open Data Plaza, daily necessities prices",
+  "서울시 착한가격업소 기준": "Seoul good-price restaurants",
+  "서울시 가격안정 모범업소(착한가격업소) 상품목록": "Seoul good-price restaurants menu list",
+  "한국소비자원 참가격 생필품 가격 (전국 마트·편의점)": "Korea Consumer Agency price survey (supermarkets & convenience stores nationwide)",
+  "웹 검색 기반 추정 (식당 목록: 카카오, 가격: Claude 웹 검색)": "Web search estimate (restaurants from Kakao Map, prices found by Claude)",
+};
+
+const en: Strings = {
+  appName: "WonSense",
+  tagline: "Your sense of Seoul prices",
+  goHome: "WonSense home",
+  searchPlaceholder: "Search food or groceries (e.g. bibimbap, soju)",
+  quizTitle: "Price quiz",
+  comingSoon: "Coming soon",
+  quizLoading: "Loading a question…",
+  quizSource: "Source",
+  quizNext: "Next question",
+  quizNeedNumber: "Enter a number",
+  quizTypes: { guess: "Guess the price", higher_lower: "Pricier or cheaper?", menu: "Is this price OK?" },
+  quizVerdict: { right: "Correct!", near: "So close!", wrong: "Nope!" },
+  quizHigher: "Pricier ⬆️",
+  quizLower: "Cheaper ⬇️",
+  quizNormal: "Normal price",
+  quizAbove: "On the pricey side",
+  quizGuessPlaceholder: "e.g. 3,000",
+  quizWon: "won",
+  quizError: "Couldn't load the quiz. Check that the backend is running.",
+  heatmapSource: "Source: Seoul Open Data Plaza, daily necessities prices",
+  reviewEmpty: "No reviews yet",
+  loading: "Loading…",
+  close: "Close",
+  heatmapPageTitle: "Seoul price map",
+  heatmapIntro:
+    "Grocery prices at traditional markets and supermarkets, compared with the Seoul average (100). Not restaurant prices.",
+  heatmapItemLabel: "Item",
+  heatmapAllItems: "Overall price index",
+  heatmapMapLabel: "Map of prices by Seoul district",
+  heatmapLegendLabel: "Color legend: difference from the Seoul average",
+  heatmapCheaper: "Cheaper",
+  heatmapPricier: "Pricier",
+  heatmapSeoulAvg: "Seoul average",
+  heatmapVsSeoul: "vs. Seoul average",
+  heatmapIndex: "Price index",
+  heatmapPrice: "Price",
+  heatmapDistrict: "District",
+  heatmapRanking: "District ranking",
+  heatmapPricierItems: "Pricier than the Seoul average",
+  heatmapCheaperItems: "Cheaper than the Seoul average",
+  heatmapNoData: "No data",
+  heatmapItemCount: (n: number) => `${n} items compared`,
+  heatmapError: "Couldn't load price data. Check that the backend is running.",
+  heatmapSourceDetail:
+    "Source: Seoul Open Data Plaza, farm/fishery/livestock prices (traditional markets and supermarkets, excluding sale prices)",
+  heatmapReferenceDate: "As of",
+  search: {
+    pageTitle: "Price search",
+    pageDesc: "Look up Seoul restaurant menus and grocery prices in English or Korean.",
+    empty: "Type a dish or item to look up (e.g. bibimbap, soju, 김치찌개)",
+    menusTitle: "Restaurant menus",
+    menusNote:
+      "Based on Seoul's certified good-price restaurants, so typical restaurants may charge a bit more. 'Usually' is the middle 50% of store prices.",
+    groceriesTitle: "Groceries",
+    productsTitle: "Supermarket & convenience store products",
+    productsNote:
+      "Regular prices surveyed by the Korea Consumer Agency at supermarkets and convenience stores nationwide (no sales or 1+1 deals). 'Usually' is the middle 50% of store prices.",
+    convenience: "Convenience store",
+    webMenusTitle: "Typical restaurants (web search estimate)",
+    webMenusNote: "Prices of regular restaurants on Kakao Map, found on the web by Claude. Each price links to its source and may be wrong, so check the source.",
+    byArea: "Median by area",
+    sourceLink: "Source",
+    verified: "Verified",
+    restaurants: (n: number) => `${n} restaurant${n === 1 ? "" : "s"}`,
+    verifiedCount: (n: number) => `${n} price${n === 1 ? "" : "s"} checked by a person`,
+    median: "Median",
+    menuRange: (min: string, max: string) => `Full range ${min} – ${max}`,
+    stores: (n: number) => `${n} stores surveyed`,
+    error: "Couldn't load search results. Check that the backend is running.",
+    count: (n: number) => `${n} item${n === 1 ? "" : "s"}`,
+    usually: "Usually",
+    average: "Seoul average",
+    source: "Source",
+    referenceDate: "As of",
+    districts: (n: number) => `${n} districts surveyed`,
+    rangeNote:
+      "The price range runs from the cheapest to the priciest district average. Sale and promotional prices are excluded.",
+    noResults: (q: string) => `No price data for "${q}"`,
+    notCovered: "We don't have data yet for services like transport, or for some dishes.",
+    didYouMean: "Did you mean one of these?",
+    reviews: (q: string) => `See reviews about "${q}"`,
+  },
+  scan: {
+    entry: "Snap a price tag to check for rip-offs",
+    pageTitle: "Rip-off checker",
+    pageDesc:
+      "Take a photo of a price tag, menu, or receipt. We'll explain it in English and compare it with Seoul prices.",
+    takePhoto: "Take a photo",
+    pickPhoto: "Choose from album",
+    district: "District you're in",
+    districtNone: "Not selected",
+    districtHint: "Pick a district to judge prices against that neighborhood. You can change it after the scan too.",
+    reading: "Reading the photo…",
+    retake: "Another photo",
+    error: "Couldn't read the photo.",
+    noPrices: "We couldn't find any prices in the photo. Try again with the prices clearly visible.",
+    verdict: { cheap: "Good deal", fair: "Fair price", pricey: "A bit pricey", ripoff: "Rip-off alert!" },
+    diff: (pct: number, ref: string) =>
+      Math.abs(pct) < 0.5 ? `About the ${ref}` : pct > 0 ? `${pct}% above the ${ref}` : `${-pct}% below the ${ref}`,
+    seoul: "Seoul",
+    summary: (n: number) => `Total of ${n} compared items`,
+    seoulOnly: "No district prices for this item, so it's judged against the Seoul average",
+    paid: "This price",
+    seoulAvg: "Seoul average",
+    menuRef: "good-price restaurant price",
+    menuRefTitle: "Good-price restaurant price",
+    mixedRef: "reference prices",
+    range: "Usual range",
+    districtAvg: (name: string) => `${name} average`,
+    cheapest: (name: string, price: string) => `Cheapest in ${name} (avg ${price})`,
+    comparedTo: "Compared with",
+    basisOfficial: "Seoul city official prices",
+    basisEstimate: "Estimate",
+    basisMenu: (n: number) => `Top of the usual range at ${n} certified good-price restaurants in Seoul`,
+    spice: ["Not spicy", "Mildly spicy", "Spicy", "Very spicy"],
+    vegetarian: "Vegetarian",
+    notVegetarian: "Has meat or seafood",
+    contains: "Contains",
+    ingredient: {
+      pork: "Pork",
+      beef: "Beef",
+      chicken: "Chicken",
+      seafood: "Seafood",
+      egg: "Egg",
+      dairy: "Dairy",
+      wheat: "Wheat",
+      nuts: "Nuts",
+      soy: "Soy",
+      alcohol: "Alcohol",
+    },
+    aiNote:
+      "Dish descriptions and ingredients are AI estimates based on the usual recipe. If you have allergies, always check with the restaurant.",
+    unmatched: "No price data to compare yet",
+    source: "Source",
+    note:
+      "AI reads the photo. Prices are compared with Seoul Open Data Plaza grocery prices, Seoul's good-price restaurant menus, and Numbeo Seoul cost-of-living estimates (cafés, transport, etc.).",
+  },
+  review: {
+    pageTitle: "Real reviews from visitors",
+    pageDesc:
+      "Share what you actually paid in Seoul and how it felt. No login — each post is protected by its own password.",
+    write: "Write a review",
+    searchPlaceholder: "Search titles, text, or store names",
+    search: "Search",
+    total: (n: number) => `${n} review${n === 1 ? "" : "s"}`,
+    noResults: (q: string) => `No results for "${q}"`,
+    loading: "Loading…",
+    loadError: "Couldn't load reviews",
+    retry: "Try again",
+    prev: "Previous",
+    next: "Next",
+    seeAll: "See all",
+    notFound: "Review not found",
+    backToList: "← Back to list",
+    edited: "Edited",
+    paid: "Paid",
+    edit: "Edit",
+    delete: "Delete",
+    newTitle: "Write a review",
+    editTitle: "Edit review",
+    store: "Store",
+    storeSearch: "Search for a store name",
+    storeNew: (name: string) => `Add "${name}" as a new store`,
+    storeChange: "Change",
+    storeCategory: "Store type",
+    storeDistrict: "District",
+    storeDistrictNone: "Not selected",
+    storeAddress: "Address (optional)",
+    storeRequired: "Pick a store or add a new one",
+    nickname: "Nickname",
+    nicknamePlaceholder: "Leave blank for Anonymous",
+    title: "Title",
+    body: "Review",
+    bodyPlaceholder: "What did you buy, for how much, and how did the price feel?",
+    paidPrice: "Price paid (won)",
+    priceFeeling: "How the price felt",
+    rating: "Rating",
+    none: "None",
+    password: "Password",
+    passwordHint: "Needed to edit or delete. It can't be recovered if you forget it.",
+    passwordShort: "Password must be at least 4 characters",
+    passwordLong: "Password is too long (up to 72 English or 24 Korean characters)",
+    submit: "Post",
+    save: "Save",
+    cancel: "Cancel",
+    saving: "Saving…",
+    confirmEdit: "Enter the password to edit",
+    confirmDelete: "Enter the password to delete. This can't be undone.",
+    confirm: "Confirm",
+    deleted: "Review deleted",
+  },
+  storeCategory: {
+    restaurant: "Restaurant",
+    cafe: "Café",
+    bar: "Bar",
+    convenience: "Convenience store",
+    market: "Market",
+    shop: "Shop",
+    other: "Other",
+  },
+  priceFeeling: {
+    cheap: "Cheap",
+    fair: "Fair",
+    expensive: "Expensive",
+  },
+  languageToggle: "한국어",
+  languageToggleLabel: "한국어로 보기",
+  apiNoUrl: "The server address isn't configured (NEXT_PUBLIC_API_URL). Check the deployment settings.",
+  apiUnreachable: "Can't reach the server. Please try again in a moment.",
+  heatmapBinBelow: (v: string) => `${v} or less`,
+  heatmapBinAbove: (v: string) => `${v} or more`,
+  quizPriceLabel: "Price (won)",
+  quizShownPrice: (n: number) => `₩${krw(n)}`,
+  // The item name is already shown in the chip above, and names like "Eggs, 10" don't fit inside a sentence.
+  quizGuessQuestion: () => "What does this cost on average in Seoul?",
+  quizHigherLowerQuestion: (target: string, base: string, basePrice: number) =>
+    `Is ${target} pricier or cheaper than ${base} (₩${krw(basePrice)})?`,
+  quizMenuQuestion: (menu: string, price: number) =>
+    `${menu} for ₩${krw(price)} at a good-price restaurant: normal or on the pricey side?`,
+  quizFeedback: {
+    guess(result: QuizResult, direction: QuizDirection, avg: number): string {
+      const way = direction === "high" ? "high" : "low";
+      if (result === "right") return `The average is ₩${krw(avg)}.`;
+      if (result === "near") return `A little ${way}. The average is ₩${krw(avg)}.`;
+      return `Way too ${way}. The average is ₩${krw(avg)}.`;
+    },
+    higherLower(target: string, price: number): string {
+      return `${target} averages ₩${krw(price)}.`;
+    },
+    menu(answer: "normal" | "above", low: number, high: number): string {
+      const verdict = answer === "normal" ? "That's a normal price" : "That's on the pricey side";
+      return `${verdict}. Good-price restaurants usually charge ₩${krw(low)}–₩${krw(high)}.`;
+    },
+  },
+  fx: {
+    title: "Today's exchange rates",
+    unit: { USD: "US$1", JPY: "¥100", CNY: "CN¥1", EUR: "€1" },
+    vsPrev: "▲▼ vs previous day",
+    trend: (n: number) => `Last ${n} days`,
+    asOf: (d: string) => `As of ${d}`,
+    note: "Central bank reference rates. Money changers and card payments will differ.",
+    error: "Couldn't load exchange rates",
+  },
+  lang: "en",
+  dateLocale: "en-US",
+  sourceName: (source: string): string => EN_SOURCES[source] ?? source,
+};
+
+export const strings: Record<Locale, Strings> = { ko, en };

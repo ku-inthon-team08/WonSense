@@ -48,6 +48,7 @@ supabase db push
 
 1. [render.com](https://render.com)에 GitHub로 로그인 → **New → Blueprint** → 이 리포 선택
 2. 입력하라는 값을 채운다: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`
+   (Claude 대신 Lablup Token Factory의 DeepSeek를 쓰려면 `LLM_BASE_URL`·`LLM_API_KEY`·`LLM_MODEL`, `.env.example` 참고)
 3. 배포가 끝나면 `https://<서비스 주소>/health/db`가 `{"status":"ok","database":"connected"}`인지 확인
 4. Vercel 프로젝트 → Settings → Environment Variables에 `NEXT_PUBLIC_API_URL=https://<서비스 주소>`(끝에 `/` 없이)를 넣고 **Redeploy**. 빌드할 때 코드에 박히는 값이라 다시 배포해야 반영된다
 

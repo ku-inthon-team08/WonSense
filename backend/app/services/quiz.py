@@ -42,11 +42,13 @@ def build_guess(items: list[dict], exclude: str | None, rng: random.Random) -> d
         "key": f"item:{item['item_id']}",
         "item_id": item["item_id"],
         "quiz_name": item["quiz_name"],
+        "quiz_name_en": item.get("quiz_name_en"),  # 영어 문제 문장은 프론트가 이 이름으로 만든다
         "question": item["quiz_question"],
         "answer_price": item["price_avg"],
         "tolerance_correct": item["tolerance_correct"],
         "tolerance_close": item["tolerance_close"],
         "tip": item["tip"],
+        "tip_en": item.get("tip_en"),
         "source": item["source"],
         "reference_date": item["reference_date"],
     }
@@ -63,7 +65,7 @@ def build_higher_lower(items: list[dict], exclude: str | None, rng: random.Rando
         raise ValueError("가격 차이가 충분한 품목 쌍을 찾지 못했습니다")
 
     def public(i: dict) -> dict:
-        return {"item_id": i["item_id"], "name": i["quiz_name"], "price": i["price_avg"]}
+        return {"item_id": i["item_id"], "name": i["quiz_name"], "name_en": i.get("quiz_name_en"), "price": i["price_avg"]}
 
     return {
         "type": "higher_lower",
@@ -111,6 +113,7 @@ def build_menu(stats: list[dict], exclude: str | None, rng: random.Random) -> di
         "type": "menu",
         "key": f"menu:{m['menu_name']}",
         "menu_name": m["menu_name"],
+        "menu_name_en": MENU_DICT[m["menu_name"]][0] if m["menu_name"] in MENU_DICT else None,
         "question": f"착한가격업소에서 {m['menu_name']} {shown:,}원, 보통 가격일까요 비싼 편일까요?",
         "shown_price": shown,
         "median_price": m["price_median"],

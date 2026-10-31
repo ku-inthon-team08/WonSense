@@ -3,7 +3,7 @@ from datetime import date
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routers.items import get_items, get_menus, get_products
+from app.routers.items import get_items, get_menus, get_products, get_restaurants
 from app.services.products import match_concepts, search_products
 from scripts.ingest_products import is_convenience, parse_dataset_date, summarize
 
@@ -97,6 +97,7 @@ def test_search_endpoint_returns_products():
     app.dependency_overrides[get_items] = lambda: []
     app.dependency_overrides[get_menus] = lambda: {"rows": [], "districts": {}, "reference_date": None}
     app.dependency_overrides[get_products] = lambda: PRODUCTS
+    app.dependency_overrides[get_restaurants] = lambda: []
     try:
         body = TestClient(app).get("/api/items/search", params={"q": "beer"}).json()
         assert [p["product_name"] for p in body["products"]] == ["카스 프레쉬(500ml)", "테라(500ml)"]

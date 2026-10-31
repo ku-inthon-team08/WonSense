@@ -20,7 +20,9 @@ def _load_quiz_items(supabase: Client) -> list[dict]:
     """출제 대상 품목 + 최신 서울 평균가. 문제 문구와 팁은 items에 미리 넣어 둔 값을 쓴다."""
     items = (
         supabase.table("items")
-        .select("id, quiz_name, quiz_question, tip_ko, quiz_tolerance_correct, quiz_tolerance_close")
+        # quiz_name_en / tip_en은 20261101000900_quiz_english.sql에서 추가된다. 아직 적용 전인 DB에서도
+        # 깨지지 않도록 *로 읽고 .get()으로 꺼낸다
+        .select("*")
         .eq("quiz_enabled", True)
         .not_.is_("quiz_question", "null")
         .execute()
@@ -50,6 +52,8 @@ def _load_quiz_items(supabase: Client) -> list[dict]:
             "quiz_name": i["quiz_name"],
             "quiz_question": i["quiz_question"],
             "tip": i["tip_ko"] or "",
+            "quiz_name_en": i.get("quiz_name_en"),
+            "tip_en": i.get("tip_en"),
             "tolerance_correct": float(i["quiz_tolerance_correct"]),
             "tolerance_close": float(i["quiz_tolerance_close"]),
             "price_avg": stats[i["id"]]["price_avg"],

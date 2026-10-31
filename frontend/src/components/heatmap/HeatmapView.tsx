@@ -6,9 +6,11 @@ import { HeatmapLegend } from "@/components/heatmap/HeatmapLegend";
 import { SeoulMap } from "@/components/heatmap/SeoulMap";
 import { binFor, formatPct, formatWon, getHeatmap, getHeatmapItems } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 
 export function HeatmapView() {
+  const t = useT();
+  const dn = useDistrictName();
   const [itemId, setItemId] = useState<number | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -104,7 +106,7 @@ export function HeatmapView() {
                             style={{ background: binFor(d.diff_pct, mode).fill }}
                             aria-hidden
                           />
-                          {d.name}
+                          {dn(d.name)}
                         </button>
                       </td>
                       <td className="py-1.5 text-right font-semibold tabular-nums">

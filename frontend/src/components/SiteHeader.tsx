@@ -1,10 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 import { frame } from "@/lib/ui";
 
 // Slim version of the home top band for detail pages. The logo always links home.
 export function SiteHeader() {
+  const t = useT();
   return (
     <header className="bg-brand">
       <div className={`${frame} py-3 md:py-4`}>

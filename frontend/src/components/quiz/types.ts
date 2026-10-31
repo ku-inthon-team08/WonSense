@@ -5,17 +5,21 @@ export type GuessQuizData = Common & {
   type: "guess";
   item_id: number;
   quiz_name: string;
+  quiz_name_en?: string | null; // null until the quiz_english migration is applied
   answer_price: number;
   tolerance_correct: number;
   tolerance_close: number;
   tip: string;
+  tip_en?: string | null;
   reference_date: string;
 };
 
+type QuizItem = { item_id: number; name: string; name_en?: string | null; price: number };
+
 export type HigherLowerQuizData = Common & {
   type: "higher_lower";
-  base: { item_id: number; name: string; price: number };
-  target: { item_id: number; name: string; price: number };
+  base: QuizItem;
+  target: QuizItem;
   answer: "higher" | "lower";
   reference_date: string;
 };
@@ -23,6 +27,7 @@ export type HigherLowerQuizData = Common & {
 export type MenuQuizData = Common & {
   type: "menu";
   menu_name: string;
+  menu_name_en?: string | null;
   shown_price: number;
   median_price: number;
   normal_low: number;
@@ -33,8 +38,8 @@ export type MenuQuizData = Common & {
 
 export type QuizData = GuessQuizData | HigherLowerQuizData | MenuQuizData;
 
+// Only the answer is stored; the feedback text is built at render time so it follows a language switch.
 export type Outcome = {
   result: "right" | "near" | "wrong";
-  feedback: string;
-  tip?: string;
+  direction?: "high" | "low"; // guess quiz: was the guess above or below the average
 };

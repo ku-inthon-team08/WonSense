@@ -49,11 +49,38 @@ export type ProductResult = {
   source: string;
 };
 
+// Typical (non good-price) restaurants: prices found by LLM web search, each with its source page
+export type WebMenuExample = {
+  place_name: string;
+  area: string;
+  price: number;
+  weight_g: number | null;
+  source_url: string;
+  place_url: string | null;
+  verified: boolean; // a person opened the source and confirmed the price
+};
+export type WebMenuResult = {
+  menu: string; // e.g. 삼겹살 1인분
+  name_en: string | null;
+  count: number;
+  price_low: number;
+  price_median: number;
+  price_high: number;
+  price_min: number;
+  price_max: number;
+  verified_count: number;
+  by_area: { area: string; count: number; price_median: number }[];
+  examples: WebMenuExample[];
+  reference_date: string;
+  source: string;
+};
+
 export type SearchResponse = {
   query: string;
   results: SearchItem[];
   menus: MenuResult[];
   products: ProductResult[];
+  web_menus: WebMenuResult[];
   suggestions: string[]; // typo fixes when there are no results
   not_covered: boolean; // restaurant menu / transport query: no data yet
 };
@@ -67,6 +94,7 @@ export const searchItems = async (q: string, init?: RequestInit): Promise<Search
     results: res.results ?? [],
     menus: res.menus ?? [],
     products: res.products ?? [],
+    web_menus: res.web_menus ?? [],
     suggestions: res.suggestions ?? [],
     not_covered: res.not_covered ?? false,
   };

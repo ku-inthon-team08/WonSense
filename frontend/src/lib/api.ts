@@ -1,3 +1,5 @@
+import { currentStrings } from "@/lib/i18n";
+
 // All data goes through the FastAPI backend (see backend/README.md).
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -30,9 +32,9 @@ function networkErrorMessage(): string {
     typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
   if (pointsAtLocalhost && !onLocalhost) {
     // Deployed build without NEXT_PUBLIC_API_URL: it fell back to the visitor's own machine.
-    return "서버 주소가 설정되지 않았어요 (NEXT_PUBLIC_API_URL). 배포 설정을 확인해 주세요.";
+    return currentStrings().apiNoUrl;
   }
-  return "서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.";
+  return currentStrings().apiUnreachable;
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {

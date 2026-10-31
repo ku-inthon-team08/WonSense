@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { quizFeedback, t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 import { ChoiceButtons } from "./ChoiceButtons";
 import { GuessQuiz } from "./GuessQuiz";
 import { ResultBox } from "./ResultBox";
+import { quizName, quizQuestion } from "./text";
 import type { Outcome, QuizData } from "./types";
-
-const won = (n: number) => n.toLocaleString("ko-KR");
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -19,16 +18,17 @@ function Chip({ children }: { children: React.ReactNode }) {
 }
 
 export function QuizCard() {
+  const t = useT();
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
   const fetchQuiz = useCallback((exclude?: string) => {
     const qs = exclude ? `?exclude=${encodeURIComponent(exclude)}` : "";
     return api<QuizData>(`/api/quiz/random${qs}`)
       .then(setQuiz)
-      .catch(() => setError(t.quizError))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,7 +38,7 @@ export function QuizCard() {
 
   function next(exclude: string) {
     setLoading(true);
-    setError("");
+    setError(false);
     setOutcome(null);
     fetchQuiz(exclude);
   }
@@ -46,24 +46,24 @@ export function QuizCard() {
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-stone-100 p-4">
       {loading || !quiz ? (
-        <p className="text-slate-600">{error || t.quizLoading}</p>
+        <p className="text-slate-600">{error ? t.quizError : t.quizLoading}</p>
       ) : (
         <>
           <span className="self-start rounded-md bg-brand px-2 py-0.5 text-xs font-semibold text-white">
             {t.quizTypes[quiz.type]}
           </span>
 
-          {quiz.type === "guess" && <Chip>{quiz.quiz_name}</Chip>}
+          {quiz.type === "guess" && <Chip>{quizName(t, quiz)}</Chip>}
           {quiz.type === "menu" && (
             <div className="flex items-baseline gap-3">
-              <Chip>{quiz.menu_name}</Chip>
-              <span className="text-2xl font-bold text-slate-900">{won(quiz.shown_price)}원</span>
+              <Chip>{quizName(t, quiz)}</Chip>
+              <span className="text-2xl font-bold text-slate-900">{t.quizShownPrice(quiz.shown_price)}</span>
             </div>
           )}
-          <p className="text-lg font-medium text-slate-800">{quiz.question}</p>
+          <p className="text-lg font-medium text-slate-800">{quizQuestion(t, quiz)}</p>
 
           {outcome ? (
-            <ResultBox outcome={outcome} source={quiz.source} />
+            <ResultBox outcome={outcome} quiz={quiz} />
           ) : quiz.type === "guess" ? (
             <GuessQuiz key={quiz.key} quiz={quiz} onAnswer={setOutcome} />
           ) : quiz.type === "higher_lower" ? (
@@ -72,12 +72,7 @@ export function QuizCard() {
                 { value: "higher", label: t.quizHigher },
                 { value: "lower", label: t.quizLower },
               ]}
-              onPick={(v) =>
-                setOutcome({
-                  result: v === quiz.answer ? "right" : "wrong",
-                  feedback: quizFeedback.higherLower(quiz.target.name, quiz.target.price),
-                })
-              }
+              onPick={(v) => setOutcome({ result: v === quiz.answer ? "right" : "wrong" })}
             />
           ) : (
             <ChoiceButtons
@@ -85,12 +80,7 @@ export function QuizCard() {
                 { value: "normal", label: t.quizNormal },
                 { value: "above", label: t.quizAbove },
               ]}
-              onPick={(v) =>
-                setOutcome({
-                  result: v === quiz.answer ? "right" : "wrong",
-                  feedback: quizFeedback.menu(quiz.answer, quiz.normal_low, quiz.normal_high),
-                })
-              }
+              onPick={(v) => setOutcome({ result: v === quiz.answer ? "right" : "wrong" })}
             />
           )}
 
