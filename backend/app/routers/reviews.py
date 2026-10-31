@@ -1,7 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, Field, field_validator, model_validator
 from supabase import Client
 
 from app.db.supabase import get_supabase
@@ -18,8 +18,18 @@ router = APIRouter(prefix="/api/reviews", tags=["reviews"])
 
 PriceFeeling = Literal["cheap", "fair", "expensive"]
 
-# bcrypt는 72바이트까지만 쓰므로 그보다 긴 비밀번호는 받지 않는다
-Password = Field(min_length=4, max_length=72)
+# bcrypt는 72바이트까지만 받으므로(5.0부터는 넘으면 ValueError) UTF-8 바이트 기준으로 막는다.
+# max_length는 글자 수라서 한글(3바이트)이면 25자부터 72바이트를 넘는다.
+PASSWORD_MAX_BYTES = 72
+
+
+def _password_bytes_limit(v: str) -> str:
+    if len(v.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        raise ValueError(f"비밀번호는 UTF-8 기준 {PASSWORD_MAX_BYTES}바이트 이하여야 합니다")
+    return v
+
+
+Password = Annotated[str, Field(min_length=4), AfterValidator(_password_bytes_limit)]
 
 
 class StoreRef(BaseModel):
@@ -38,7 +48,7 @@ class StoreRef(BaseModel):
 class ReviewCreate(StoreRef):
     # validate_default: 닉네임을 아예 안 보내도 default_nickname이 돌아 'Anonymous'가 된다
     nickname: str | None = Field(None, max_length=30, validate_default=True)
-    password: str = Password
+    password: Password
     title: str = Field(min_length=1, max_length=100)
     body: str = Field(min_length=1, max_length=5000)
     paid_price: int | None = Field(None, ge=0)
@@ -60,7 +70,7 @@ class ReviewCreate(StoreRef):
 class ReviewUpdate(StoreRef):
     """보낸 필드만 바꾼다. 비밀번호 자체는 바꿀 수 없다."""
 
-    password: str = Password
+    password: Password
     nickname: str | None = Field(None, max_length=30)
     title: str | None = Field(None, min_length=1, max_length=100)
     body: str | None = Field(None, min_length=1, max_length=5000)
@@ -70,7 +80,7 @@ class ReviewUpdate(StoreRef):
 
 
 class PasswordBody(BaseModel):
-    password: str = Password
+    password: Password
 
 
 def _client_id(request: Request) -> str:
