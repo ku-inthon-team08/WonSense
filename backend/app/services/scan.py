@@ -139,9 +139,13 @@ def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
         "quantity_ratio": ratio,
         "seoul_avg": avg,
         "seoul_range": [round(entry[k] * ratio) if entry.get(k) else None for k in ("min", "max")],
+        "seoul_diff_pct": round(diff * 100, 1),
+        "compare_avg": avg,
+        "compare_region": None,
         "diff_pct": round(diff * 100, 1),
         "verdict": verdict(diff),
         "district_avg": None,
+        "district_prices": {},
         "cheapest_district": None,
         "source": ref["source"],
         "reference_date": ref["reference_date"],
@@ -150,6 +154,7 @@ def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
 
 def judge_line(line: ScannedLine, item: dict | None, districts: list[dict], district: str | None = None) -> dict:
     """한 줄 판정. districts: 그 품목의 구별 평균 [{region, region_name, price_avg}].
+    district(지금 있는 구)를 주면 그 구 평균과 비교하고, 없거나 그 구 데이터가 없으면 서울 평균과 비교한다.
     DB 품목이 없으면 Numbeo 기준가로 추정하고, 그것도 없거나 비율이 이상하면 matched=False."""
     out = {
         "name": line.name,
@@ -168,9 +173,11 @@ def judge_line(line: ScannedLine, item: dict | None, districts: list[dict], dist
         return out
 
     seoul_avg = round(item["price_avg"] * ratio)
-    diff = line.price / seoul_avg - 1
     cheapest = min(districts, key=lambda d: d["price_avg"], default=None)
     here = next((d for d in districts if district and district in (d["region"], d["region_name"])), None)
+    district_avg = round(here["price_avg"] * ratio) if here else None
+    compare_avg = district_avg or seoul_avg
+    diff = line.price / compare_avg - 1
     out.update(
         matched=True,
         basis="official",
@@ -180,9 +187,14 @@ def judge_line(line: ScannedLine, item: dict | None, districts: list[dict], dist
         quantity_ratio=ratio,
         seoul_avg=seoul_avg,
         seoul_range=[round(item[k] * ratio) if item.get(k) else None for k in ("price_min", "price_max")],
+        seoul_diff_pct=round((line.price / seoul_avg - 1) * 100, 1),
+        compare_avg=compare_avg,
+        compare_region=here["region_name"] if here else None,
         diff_pct=round(diff * 100, 1),
         verdict=verdict(diff),
-        district_avg=round(here["price_avg"] * ratio) if here else None,
+        district_avg=district_avg,
+        # 프론트에서 구를 바꾸면 Claude를 다시 부르지 않고 이 값으로 다시 판정한다
+        district_prices={d["region_name"]: round(d["price_avg"] * ratio) for d in districts},
         cheapest_district=(
             {"region": cheapest["region"], "name": cheapest["region_name"], "price_avg": round(cheapest["price_avg"] * ratio)}
             if cheapest
@@ -195,17 +207,17 @@ def judge_line(line: ScannedLine, item: dict | None, districts: list[dict], dist
 
 
 def summarize(lines: list[dict]) -> dict:
-    """맞춘 줄들의 합계 비교. 사진 전체가 평균보다 얼마나 비싼지."""
+    """맞춘 줄들의 합계 비교. 사진 전체가 비교 기준(구 또는 서울) 평균보다 얼마나 비싼지."""
     matched = [line for line in lines if line["matched"]]
     if not matched:
-        return {"matched_count": 0, "total_price": None, "total_seoul_avg": None, "diff_pct": None, "verdict": None}
+        return {"matched_count": 0, "total_price": None, "total_avg": None, "diff_pct": None, "verdict": None}
     paid = sum(line["price"] for line in matched)
-    avg = sum(line["seoul_avg"] for line in matched)
+    avg = sum(line["compare_avg"] for line in matched)
     diff = paid / avg - 1
     return {
         "matched_count": len(matched),
         "total_price": paid,
-        "total_seoul_avg": avg,
+        "total_avg": avg,
         "diff_pct": round(diff * 100, 1),
         "verdict": verdict(diff),
     }

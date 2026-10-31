@@ -33,15 +33,30 @@ def test_verdict_bands():
     assert verdict(0.31) == "ripoff"
 
 
-def test_judge_scales_by_quantity_and_finds_cheapest_district():
-    out = judge_line(line(), EGGS, DISTRICTS, district="강남구")
+def test_judge_scales_by_quantity_and_uses_seoul_without_district():
+    out = judge_line(line(), EGGS, DISTRICTS)
     # 30구 = 10개 × 3 → 서울 평균 12,000원, 14,400원이면 20% 비쌈
-    assert out["seoul_avg"] == 12000
-    assert out["diff_pct"] == 20.0
+    assert out["seoul_avg"] == 12000 and out["compare_avg"] == 12000 and out["compare_region"] is None
+    assert out["diff_pct"] == 20.0 and out["seoul_diff_pct"] == 20.0
     assert out["verdict"] == "pricey"
-    assert out["district_avg"] == 13800
+    assert out["district_avg"] is None
+    assert out["district_prices"] == {"마포구": 10800, "강남구": 13800}
     assert out["cheapest_district"] == {"region": "11440", "name": "마포구", "price_avg": 10800}
     assert out["basis"] == "official" and out["seoul_range"] == [10500, 14400]
+
+
+def test_judge_against_selected_district_average():
+    # 같은 14,400원이라도 강남구(13,800원)에서는 적정가, 마포구(10,800원)에서는 바가지
+    gangnam = judge_line(line(), EGGS, DISTRICTS, district="강남구")
+    assert gangnam["compare_avg"] == 13800 and gangnam["compare_region"] == "강남구"
+    assert gangnam["verdict"] == "fair" and gangnam["diff_pct"] == 4.3
+    assert gangnam["seoul_diff_pct"] == 20.0
+
+    mapo = judge_line(line(), EGGS, DISTRICTS, district="11440")  # 코드로 줘도 된다
+    assert mapo["compare_region"] == "마포구" and mapo["verdict"] == "ripoff"
+
+    # 데이터가 없는 구면 서울 평균으로 돌아간다
+    assert judge_line(line(), EGGS, DISTRICTS, district="은평구")["compare_region"] is None
 
 
 def reference_id(name: str) -> int:
@@ -83,7 +98,7 @@ def test_unmatched_or_bad_ratio_is_not_compared():
 def test_summary_totals_only_matched_lines():
     lines = [judge_line(line(), EGGS, []), judge_line(line(item_id=None, quantity_ratio=None), None, [])]
     s = summarize(lines)
-    assert s["matched_count"] == 1 and s["total_price"] == 14400 and s["total_seoul_avg"] == 12000
+    assert s["matched_count"] == 1 and s["total_price"] == 14400 and s["total_avg"] == 12000
     assert summarize([lines[1]])["verdict"] is None
 
 
@@ -129,7 +144,7 @@ def test_scan_endpoint():
         body = client.post("/api/scan", json={"image": image, "media_type": "image/png", "district": "마포구"}).json()
         assert [l["matched"] for l in body["lines"]] == [True, False]
         assert body["lines"][0]["district_avg"] == 10800
-        assert body["summary"]["verdict"] == "pricey"
+        assert body["summary"]["verdict"] == "ripoff"  # 마포구 평균 10,800원 기준
 
         sent = claude.calls[0]
         assert sent["messages"][0]["content"][0]["source"]["data"] == base64.b64encode(b"fake-png").decode()
