@@ -1,16 +1,16 @@
 import Link from "next/link";
 
+import { PageShell } from "@/components/PageShell";
 import { ReviewForm } from "@/components/reviews/ReviewForm";
 import { t } from "@/lib/strings";
+import { card } from "@/lib/ui";
 
 export default function NewReviewPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
-      <Link href="/reviews" className="text-sm text-brand">{t.review.backToList}</Link>
-      <section className="mt-2 rounded-2xl bg-white p-5 shadow-card">
-        <h1 className="mb-4 text-xl font-bold">{t.review.newTitle}</h1>
+    <PageShell title={t.review.newTitle} back={<Link href="/reviews">{t.review.backToList}</Link>}>
+      <section className={card}>
         <ReviewForm mode="create" />
       </section>
-    </main>
+    </PageShell>
   );
 }
