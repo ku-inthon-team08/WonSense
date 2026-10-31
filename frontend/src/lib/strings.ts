@@ -10,10 +10,9 @@ export const strings = {
     reviewTitle: "리뷰",
     comingSoon: "준비 중",
     quizLoading: "문제를 불러오는 중…",
-    quizRight: "정답! 🎯",
-    quizWrong: "오답 ❌",
-    quizYourGuess: "내 답",
-    quizAnswer: "평균 가격",
+    quizRight: "Right!",
+    quizNear: "Near!",
+    quizWrong: "Wrong.",
     quizSource: "출처",
     quizNext: "다음 문제",
     quizNeedNumber: "숫자를 입력하세요",
@@ -134,3 +133,12 @@ export const strings = {
 
 export type Locale = keyof typeof strings;
 export const t = strings.ko;
+
+export type QuizResult = "right" | "near" | "wrong";
+export type QuizDirection = "high" | "low";
+
+export function quizFeedback(result: QuizResult, direction: QuizDirection, avgText: string): string {
+  if (result === "right") return `Right! Average is ${avgText}.`;
+  if (result === "near") return `Near! A bit ${direction}. Average is ${avgText}.`;
+  return `Wrong. Way too ${direction}. Average is ${avgText}.`;
+}
