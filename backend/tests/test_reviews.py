@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.routers.reviews import ReviewCreate, ReviewUpdate
+from app.routers.reviews import PasswordBody, ReviewCreate, ReviewUpdate
 from app.services.reviews import AttemptLimiter, clean_search_term, hash_password, verify_password
 
 
@@ -53,3 +53,13 @@ def test_review_rejects_bad_values():
         ReviewCreate(password="1234", title="t", body="b", store_id=1, rating=6)
     with pytest.raises(ValidationError):
         ReviewUpdate(password="1234", price_feeling="very cheap")
+
+
+def test_password_limit_is_bytes_not_chars():
+    # 한글 24자 = 72바이트는 통과, 25자 = 75바이트는 거절 (bcrypt 72바이트 한도)
+    ReviewCreate(password="가" * 24, title="t", body="b", store_id=1)
+    with pytest.raises(ValidationError):
+        ReviewCreate(password="가" * 25, title="t", body="b", store_id=1)
+    with pytest.raises(ValidationError):
+        PasswordBody(password="a" * 73)
+    assert verify_password("가" * 25, hash_password("1234")) is False  # 500 대신 False
