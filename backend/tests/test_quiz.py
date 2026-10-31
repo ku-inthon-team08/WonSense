@@ -1,10 +1,15 @@
 import random
 
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.routers.quiz import get_menu_stats, get_quiz_items
 from app.services.quiz import (
     HL_MIN_GAP,
     build_guess,
     build_higher_lower,
     build_menu,
+    build_price_cards,
     menu_stats,
 )
 
@@ -80,3 +85,45 @@ def test_menu_quiz_has_english_menu_name():
     stats = [{"menu_name": "김치찌개", "count": 182, "price_low": 6000, "price_median": 6500, "price_high": 7000,
               "price_min": 3000, "price_max": 9000}]
     assert build_menu(stats, None, random.Random(0))["menu_name_en"] == "Kimchi stew"
+
+
+MENU_STATS = [{"menu_name": "김치찌개", "count": 182, "price_low": 6000, "price_median": 7000, "price_high": 7500,
+               "price_min": 3000, "price_max": 9000},
+              {"menu_name": "칼국수", "count": 147, "price_low": 5000, "price_median": 6000, "price_high": 7000,
+               "price_min": 3000, "price_max": 9000}]
+
+
+def test_price_cards_skip_per_100g_items_and_mark_familiar_ones():
+    items = [
+        {**ITEMS[0], "source_key": "계란 10개", "quiz_name_en": "Eggs, 10", "tip_en": "Tip"},
+        {**ITEMS[1], "source_key": "우유 1L", "tip": ""},
+        {**ITEMS[2], "quiz_name": "감자 100g", "reference_date": "2026-12-01"},
+    ]
+    out = build_price_cards(items, MENU_STATS)
+    by_key = {c["key"]: c for c in out["cards"]}
+
+    assert "item:3" not in by_key  # "100g당 몇 개"는 읽히지 않는다
+    assert out["reference_date"] == "2026-10-26"  # 뺀 품목의 날짜는 쓰지 않는다
+    assert by_key["item:1"]["anchor"] is True and by_key["item:2"]["anchor"] is False
+    assert by_key["item:1"]["name_en"] == "Eggs, 10" and by_key["item:1"]["tip_en"] == "Tip"
+    assert by_key["item:2"]["tip"] is None
+
+    stew = by_key["menu:김치찌개"]
+    assert stew["kind"] == "dish" and stew["price"] == 7000  # 메뉴 가격은 중앙값
+    assert stew["name_en"] == "Kimchi stew" and stew["anchor"] is True
+    assert by_key["menu:칼국수"]["anchor"] is False
+
+
+def test_price_cards_endpoint():
+    app.dependency_overrides[get_quiz_items] = lambda: ITEMS
+    app.dependency_overrides[get_menu_stats] = lambda: MENU_STATS
+    try:
+        body = TestClient(app).get("/api/quiz/prices").json()
+        assert len(body["cards"]) == len(ITEMS) + len(MENU_STATS)
+        assert body["reference_date"] == "2026-10-26"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_price_cards_with_no_data():
+    assert build_price_cards([], []) == {"cards": [], "reference_date": None}

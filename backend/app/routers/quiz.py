@@ -7,7 +7,15 @@ from app.core.cache import TtlCache
 from app.db.supabase import fetch_all, get_supabase
 from app.routers.items import get_menus
 from app.services.heatmap import SEOUL_REGION
-from app.services.quiz import QUIZ_TYPES, QuizType, build_guess, build_higher_lower, build_menu, menu_stats
+from app.services.quiz import (
+    QUIZ_TYPES,
+    QuizType,
+    build_guess,
+    build_higher_lower,
+    build_menu,
+    build_price_cards,
+    menu_stats,
+)
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
@@ -40,6 +48,7 @@ def _load_quiz_items(supabase: Client) -> list[dict]:
     return [
         {
             "item_id": i["id"],
+            "source_key": i.get("source_key"),
             "quiz_name": i["quiz_name"],
             "quiz_question": i["quiz_question"],
             "tip": i["tip_ko"] or "",
@@ -90,3 +99,12 @@ def get_random_quiz(
         except ValueError:
             return build_guess(items, exclude, rng)
     return build_menu(menus, exclude, rng)
+
+
+@router.get("/prices")
+def get_price_cards(
+    items: list[dict] = Depends(get_quiz_items),
+    menus: list[dict] = Depends(get_menu_stats),
+) -> dict:
+    """가격 감 익히기: 장보기 품목과 식당 메뉴의 가격 카드. 최신 서울 평균가와 메뉴 중앙값이다."""
+    return build_price_cards(items, menus)

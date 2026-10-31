@@ -18,6 +18,7 @@ npm run dev                  # http://localhost:3000
 | `src/lib/reviews.ts` | Review/store types and API calls |
 | `src/components/quiz/` | F2 quiz UI |
 | `src/components/{search,heatmap,scan,fx}/` | Price search, heat map, rip-off scanner, exchange rates |
+| `src/components/learn/` | Under the quiz: Budget Quiz and Price Ladder (`src/lib/learn.ts` holds their logic) |
 | `src/lib/api.ts` | Fetch helper for the backend |
 | `src/lib/useApi.ts` | Client fetch hook: loading / error / stale-response handling |
 | `src/lib/kakao.ts` | Kakao place search for the review form |
