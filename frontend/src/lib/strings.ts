@@ -243,12 +243,25 @@ const ko = {
     fx: {
       title: "오늘의 환율",
       pageDesc: "주요 통화가 원화로 얼마인지 최근 흐름과 함께 보여 드려요.",
-      unit: { USD: "1달러", JPY: "100엔", CNY: "1위안", EUR: "1유로" } as Record<string, string>,
+      unit: {
+        USD: "1달러", JPY: "100엔", CNY: "1위안", EUR: "1유로", GBP: "1파운드", AUD: "1호주달러",
+        CAD: "1캐나다달러", NZD: "1뉴질랜드달러", CHF: "1스위스프랑", HKD: "1홍콩달러", TWD: "1대만달러",
+        SGD: "1싱가포르달러", THB: "1바트", VND: "100동", PHP: "1필리핀페소", IDR: "100루피아",
+        MYR: "1링깃", INR: "1루피", MNT: "100투그릭", RUB: "1루블", KZT: "1텡게", UZS: "100숨",
+      } as Record<string, string>,
       vsPrev: "▲▼ 전일 대비",
       trend: (n: number) => `최근 ${n}일`,
       asOf: (d: string) => `${d} 기준`,
       note: "중앙은행 기준 환율이라 실제 환전·카드 결제 금액과는 달라요.",
       error: "환율 정보를 불러오지 못했어요",
+      converter: {
+        title: "환전 계산기",
+        amount: "금액",
+        currency: "통화",
+        swap: "방향 바꾸기",
+        rate: (unit: string, krw: string) => `${unit} = ${krw}`,
+        note: "기준 환율로 계산했어요. 실제로 환전하면 수수료만큼 덜 받아요.",
+      },
     },
     learn: {
       budgetTitle: "이 돈이면 뭘 살까?",
@@ -536,12 +549,24 @@ const en: Strings = {
   fx: {
     title: "Today's exchange rates",
     pageDesc: "What major currencies are worth in won, with the recent trend.",
-    unit: { USD: "US$1", JPY: "¥100", CNY: "CN¥1", EUR: "€1" },
+    unit: {
+      USD: "US$1", JPY: "¥100", CNY: "CN¥1", EUR: "€1", GBP: "£1", AUD: "A$1", CAD: "C$1", NZD: "NZ$1",
+      CHF: "CHF 1", HKD: "HK$1", TWD: "NT$1", SGD: "S$1", THB: "฿1", VND: "₫100", PHP: "₱1", IDR: "Rp100",
+      MYR: "RM1", INR: "₹1", MNT: "₮100", RUB: "₽1", KZT: "₸1", UZS: "100 UZS",
+    },
     vsPrev: "▲▼ vs previous day",
     trend: (n: number) => `Last ${n} days`,
     asOf: (d: string) => `As of ${d}`,
     note: "Central bank reference rates. Money changers and card payments will differ.",
     error: "Couldn't load exchange rates",
+    converter: {
+      title: "Currency converter",
+      amount: "Amount",
+      currency: "Currency",
+      swap: "Swap direction",
+      rate: (unit: string, krw: string) => `${unit} = ${krw}`,
+      note: "Uses the reference rate. Exchanging for real, you'll get a bit less after fees.",
+    },
   },
   learn: {
     budgetTitle: "What can this buy?",

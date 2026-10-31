@@ -8,11 +8,12 @@ import { ArrowRightIcon, ExchangeIcon } from "@/components/icons/SectionIcons";
 import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
-// Exchange rates: four stat tiles (value + day-over-day change + 14-day sparkline).
-// Home passes `href` so the title links to /fx; the /fx page passes `hideTitle` because PageShell already shows it.
-export function FxRates({ href, hideTitle = false }: { href?: string; hideTitle?: boolean }) {
+// Exchange rates: stat tiles (value + day-over-day change + 14-day sparkline).
+// Home passes `href` so the title links to /fx and shows four currencies; the /fx page passes `all` for every
+// currency and `hideTitle` because PageShell already shows it.
+export function FxRates({ href, hideTitle = false, all = false }: { href?: string; hideTitle?: boolean; all?: boolean }) {
   const t = useT();
-  const { data, error } = useApi("fx", (signal) => fetchFx(signal));
+  const { data, error } = useApi(all ? "fx-all" : "fx", (signal) => fetchFx(signal, all));
 
   return (
     <section aria-label={t.fx.title}>
@@ -41,14 +42,14 @@ export function FxRates({ href, hideTitle = false }: { href?: string; hideTitle?
       {error ? (
         <p className="mt-3 text-sm text-slate-500">{t.fx.error}</p>
       ) : (
-        <ul className="mt-4 grid grid-cols-2 gap-3">
+        <ul className={`mt-4 grid grid-cols-2 gap-3 ${all ? "sm:grid-cols-3 lg:grid-cols-4" : ""}`}>
           {data
             ? data.currencies.map((c) => (
                 <li key={c.code}>
                   <FxTile c={c} />
                 </li>
               ))
-            : [0, 1, 2, 3].map((i) => (
+            : Array.from({ length: all ? 12 : 4 }, (_, i) => (
                 <li key={i} aria-hidden className="h-[118px] animate-pulse rounded-2xl bg-brand-pale" />
               ))}
         </ul>
@@ -85,9 +86,11 @@ function FxTile({ c }: { c: FxCurrency }) {
       <div className="flex items-center gap-2">
         <span
           aria-hidden
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand-ink"
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-soft font-bold text-brand-ink ${
+            (FX_SYMBOL[c.code] ?? c.code).length > 2 ? "text-[9px]" : "text-sm"
+          }`}
         >
-          {FX_SYMBOL[c.code]}
+          {FX_SYMBOL[c.code] ?? c.code}
         </span>
         <div className="min-w-0 leading-tight">
           <p className="text-xs font-semibold tracking-wide text-slate-800">{c.code}</p>

@@ -10,8 +10,16 @@ import httpx
 
 FX_URL = "https://api.frankfurter.dev/v2/rates"
 FX_SOURCE = "Frankfurter"
-# (통화, 표시 단위). 엔화는 관례대로 100엔 기준으로 보여준다
-CURRENCIES: list[tuple[str, int]] = [("USD", 1), ("JPY", 100), ("CNY", 1), ("EUR", 1)]
+# (통화, 표시 단위). 엔화·동·루피아처럼 단위가 작은 통화는 관례대로 100 단위로 보여준다
+CURRENCIES: list[tuple[str, int]] = [("USD", 1), ("JPY", 100), ("CNY", 1), ("EUR", 1)]  # 홈 화면용 주요 통화
+# 환율 페이지에서 더 보여줄 통화: 서울을 찾는 외국인이 많은 나라 위주
+EXTRA_CURRENCIES: list[tuple[str, int]] = [
+    ("GBP", 1), ("AUD", 1), ("CAD", 1), ("NZD", 1), ("CHF", 1),
+    ("HKD", 1), ("TWD", 1), ("SGD", 1), ("THB", 1), ("VND", 100),
+    ("PHP", 1), ("IDR", 100), ("MYR", 1), ("INR", 1), ("MNT", 100),
+    ("RUB", 1), ("KZT", 1), ("UZS", 100),
+]
+ALL_CURRENCIES = CURRENCIES + EXTRA_CURRENCIES
 HISTORY_POINTS = 14  # 스파크라인에 쓸 최근 일수 (Frankfurter는 주말 값도 준다)
 LOOKBACK_DAYS = 24  # 데이터가 빠진 날이 있어도 14개가 채워지도록 넉넉히 조회
 
@@ -20,7 +28,7 @@ def fetch_rates(today: date | None = None, timeout: float = 8.0) -> list[dict]:
     today = today or date.today()
     params = {
         "base": "KRW",
-        "quotes": ",".join(code for code, _ in CURRENCIES),
+        "quotes": ",".join(code for code, _ in ALL_CURRENCIES),
         "from": (today - timedelta(days=LOOKBACK_DAYS)).isoformat(),
         "to": today.isoformat(),
     }
@@ -29,21 +37,21 @@ def fetch_rates(today: date | None = None, timeout: float = 8.0) -> list[dict]:
     return res.json()
 
 
-def build_fx(rows: list[dict]) -> dict:
+def build_fx(rows: list[dict], currencies: list[tuple[str, int]] = ALL_CURRENCIES) -> dict:
     """Frankfurter 행을 통화별 '단위당 원화' 시계열로 바꾼다. 마지막 값이 오늘(최신) 환율."""
     by_code: dict[str, dict[str, float]] = defaultdict(dict)
     for r in rows:
         if r.get("rate"):
             by_code[r["quote"].upper()][r["date"]] = r["rate"]
 
-    currencies = []
-    for code, unit in CURRENCIES:
+    out = []
+    for code, unit in currencies:
         series = sorted(by_code.get(code, {}).items())[-HISTORY_POINTS:]
         if not series:
             continue
         history = [{"date": d, "krw": round(unit / rate, 2)} for d, rate in series]
         latest, prev = history[-1], (history[-2] if len(history) > 1 else None)
-        currencies.append(
+        out.append(
             {
                 "code": code,
                 "unit": unit,
@@ -53,11 +61,17 @@ def build_fx(rows: list[dict]) -> dict:
                 "history": history,
             }
         )
-    if not currencies:
+    if not out:
         raise ValueError("환율 데이터가 비어 있습니다")
     return {
         "base": "KRW",
-        "date": max(c["date"] for c in currencies),
+        "date": max(c["date"] for c in out),
         "source": FX_SOURCE,
-        "currencies": currencies,
+        "currencies": out,
     }
+
+
+def main_only(fx: dict) -> dict:
+    """홈 화면용: 주요 통화(CURRENCIES)만 남긴다."""
+    main = {code for code, _ in CURRENCIES}
+    return {**fx, "currencies": [c for c in fx["currencies"] if c["code"] in main]}

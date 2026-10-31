@@ -3,7 +3,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
-from app.services.fx import build_fx, fetch_rates
+from app.services.fx import build_fx, fetch_rates, main_only
 
 router = APIRouter(prefix="/api/fx", tags=["fx"])
 log = logging.getLogger(__name__)
@@ -14,8 +14,14 @@ _cache: dict = {"at": 0.0, "data": None}
 
 
 @router.get("")
-def get_fx() -> dict:
-    """USD·JPY(100엔)·CNY·EUR의 원화 환율과 최근 14일 추이. 외부 API가 죽으면 마지막으로 받은 값을 준다."""
+def get_fx(all: bool = False) -> dict:
+    """USD·JPY(100엔)·CNY·EUR의 원화 환율과 최근 14일 추이. all=true면 환율 페이지용으로 통화 20여 개를 준다.
+    한 번에 전부 받아 캐시하고, 외부 API가 죽으면 마지막으로 받은 값을 준다."""
+    fx = _load()
+    return fx if all else main_only(fx)
+
+
+def _load() -> dict:
     now = time.monotonic()
     if _cache["data"] is not None and now - _cache["at"] < CACHE_TTL:
         return _cache["data"]
