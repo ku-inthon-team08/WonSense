@@ -128,7 +128,6 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 | `SectionHeader` | `src/components/SectionHeader.tsx` | 카드 제목. 금색 점 + 제목 + 금색 `→`, 통째로 링크 |
 | `SearchBar` | `src/components/SearchBar.tsx` | 흰색 알약 모양 검색창 (`rounded-full`), 테두리·그림자·포커스 외곽선 없음 |
 | `SearchIcon` | `src/components/icons/SearchIcon.tsx` | flat 돋보기 SVG. 색은 `text-*` 클래스로 지정 (`currentColor`) |
-| `PlaceholderPage` | `src/components/PlaceholderPage.tsx` | 아직 안 만든 상세 페이지용 (← 홈, 제목, "준비 중") |
 
 ### 아이콘
 
