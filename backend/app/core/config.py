@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
     supabase_anon_key: str = ""
+    seoul_openapi_key: str = ""
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     @property
