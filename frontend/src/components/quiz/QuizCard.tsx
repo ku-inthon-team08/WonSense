@@ -69,7 +69,7 @@ export function QuizCard() {
   }
 
   return (
-    <div className="flex min-h-64 flex-col justify-between gap-4 rounded-xl bg-indigo-50 p-4">
+    <div className="flex min-h-64 flex-1 flex-col justify-between gap-4 rounded-xl bg-stone-100 p-4">
       <p className="text-lg font-medium text-slate-800">
         {loading ? t.quizLoading : quiz?.question}
       </p>
@@ -100,7 +100,7 @@ export function QuizCard() {
           />
           <button
             disabled={!quiz || loading}
-            className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+            className="rounded-lg bg-brand px-4 py-2 font-medium text-white disabled:opacity-50"
           >
             OK
           </button>
@@ -112,7 +112,7 @@ export function QuizCard() {
       {result !== null && (
         <button
           onClick={() => load(quiz?.item_id)}
-          className="self-end rounded-lg border border-indigo-600 px-4 py-2 font-medium text-indigo-700"
+          className="self-end rounded-lg border border-brand px-4 py-2 font-medium text-brand"
         >
           {t.quizNext} →
         </button>

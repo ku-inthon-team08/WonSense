@@ -25,9 +25,9 @@ export function LatestReviews({ count = 3 }: { count?: number }) {
     return (
       <Link
         href="/reviews/new"
-        className="block rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 hover:border-indigo-300"
+        className="block rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 hover:border-brand/50"
       >
-        {t.reviewEmpty} · <span className="text-indigo-600">{t.review.write}</span>
+        {t.reviewEmpty} · <span className="text-brand">{t.review.write}</span>
       </Link>
     );
 

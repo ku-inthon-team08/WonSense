@@ -54,7 +54,7 @@ export function SearchResults() {
                 {data.suggestions.map((s, i) => (
                   <span key={s}>
                     {i > 0 && ", "}
-                    <Link href={`/search?q=${encodeURIComponent(s)}`} className="font-medium text-indigo-600 underline">
+                    <Link href={`/search?q=${encodeURIComponent(s)}`} className="font-medium text-brand underline">
                       {s}
                     </Link>
                   </span>
@@ -71,7 +71,7 @@ export function SearchResults() {
 
 function ResultCard({ item }: { item: SearchItem }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-xl bg-white p-4 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="font-semibold text-slate-900">
           {item.name_en ?? item.name_ko}
@@ -98,7 +98,7 @@ function ResultCard({ item }: { item: SearchItem }) {
 
 function ReviewLink({ q }: { q: string }) {
   return (
-    <Link href={`/reviews?q=${encodeURIComponent(q)}`} className="mt-4 inline-block text-sm font-medium text-indigo-600">
+    <Link href={`/reviews?q=${encodeURIComponent(q)}`} className="mt-4 inline-block text-sm font-medium text-brand">
       {t.search.reviews(q)} →
     </Link>
   );

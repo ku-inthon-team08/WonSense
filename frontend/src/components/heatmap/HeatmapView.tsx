@@ -43,7 +43,7 @@ export function HeatmapView() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-5">
-        <section className="self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:col-span-3">
+        <section className="self-start rounded-2xl bg-white p-4 shadow-card md:col-span-3">
           {heatmap.error ? (
             <p className="py-16 text-center text-sm text-red-700">{t.heatmapError}</p>
           ) : (
@@ -71,7 +71,7 @@ export function HeatmapView() {
           )}
 
           {/* 지도의 표 보기: 색을 구분하기 어려워도 같은 정보를 읽을 수 있게 */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl bg-white p-4 shadow-card">
             <h2 className="mb-2 text-sm font-semibold text-slate-700">{t.heatmapRanking}</h2>
             {heatmap.loading && !heatmap.data ? (
               <p className="text-sm text-slate-500">{t.loading}</p>
@@ -89,7 +89,7 @@ export function HeatmapView() {
                     <tr
                       key={d.region}
                       onClick={() => setSelected(d.region)}
-                      className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${selected === d.region ? "bg-indigo-50" : ""}`}
+                      className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${selected === d.region ? "bg-brand-pale" : ""}`}
                     >
                       <td className="py-1.5">
                         <button

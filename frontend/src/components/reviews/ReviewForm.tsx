@@ -18,7 +18,7 @@ import { t } from "@/lib/strings";
 
 import { StorePicker, type StoreChoice } from "./StorePicker";
 
-const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-indigo-500";
+const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -160,7 +160,7 @@ export function ReviewForm(props: Props) {
               aria-pressed={feeling === f}
               onClick={() => setFeeling(feeling === f ? null : f)}
               className={`rounded-full border px-3 py-1.5 text-sm ${
-                feeling === f ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300 bg-white text-slate-700"
+                feeling === f ? "border-brand bg-brand text-white" : "border-slate-300 bg-white text-slate-700"
               }`}
             >
               {t.priceFeeling[f]}
@@ -214,7 +214,7 @@ export function ReviewForm(props: Props) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {saving ? t.review.saving : props.mode === "create" ? t.review.submit : t.review.save}
         </button>
