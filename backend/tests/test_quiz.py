@@ -75,3 +75,18 @@ def test_menu_answer_matches_shown_price():
             assert q["shown_price"] > 7000
         assert f"{q['shown_price']:,}원" in q["question"]
     assert seen == {"normal", "above"}
+
+
+def test_english_fields_pass_through_and_tolerate_missing_columns():
+    item = {**ITEMS[0], "quiz_name_en": "Eggs, 10", "tip_en": "Tip"}
+    g = build_guess([item], None, random.Random(0))
+    assert g["quiz_name_en"] == "Eggs, 10" and g["tip_en"] == "Tip"
+    # 마이그레이션 적용 전 DB: 영어 값이 없으면 None
+    hl = build_higher_lower(ITEMS, None, random.Random(0))
+    assert hl["base"]["name_en"] is None and hl["target"]["name_en"] is None
+
+
+def test_menu_quiz_has_english_menu_name():
+    stats = [{"menu_name": "김치찌개", "count": 182, "price_low": 6000, "price_median": 6500, "price_high": 7000,
+              "price_min": 3000, "price_max": 9000}]
+    assert build_menu(stats, None, random.Random(0))["menu_name_en"] == "Kimchi stew"

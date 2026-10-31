@@ -1,7 +1,8 @@
 "use client";
 
 import { useT } from "@/lib/i18n";
-import type { Outcome } from "./types";
+import { quizFeedback, quizTip } from "./text";
+import type { Outcome, QuizData } from "./types";
 
 const STYLE: Record<Outcome["result"], string> = {
   right: "bg-green-100 text-green-900",
@@ -9,15 +10,16 @@ const STYLE: Record<Outcome["result"], string> = {
   wrong: "bg-rose-100 text-rose-900",
 };
 
-export function ResultBox({ outcome, source }: { outcome: Outcome; source: string }) {
+export function ResultBox({ outcome, quiz }: { outcome: Outcome; quiz: QuizData }) {
   const t = useT();
+  const tip = quizTip(t, quiz);
   return (
     <div className={`quiz-pop rounded-lg p-4 ${STYLE[outcome.result]}`} role="status">
       <p className="text-xl font-bold">{t.quizVerdict[outcome.result]}</p>
-      <p className="mt-1">{outcome.feedback}</p>
-      {outcome.tip && <p className="mt-2 text-sm text-slate-600">💡 {outcome.tip}</p>}
+      <p className="mt-1">{quizFeedback(t, quiz, outcome)}</p>
+      {tip && <p className="mt-2 text-sm text-slate-600">💡 {tip}</p>}
       <p className="mt-2 text-xs text-slate-500">
-        {t.quizSource}: {source}
+        {t.quizSource}: {t.sourceName(quiz.source)}
       </p>
     </div>
   );

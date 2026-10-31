@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import type { Strings } from "@/lib/strings";
 import { ChoiceButtons } from "./ChoiceButtons";
 import { GuessQuiz } from "./GuessQuiz";
 import { ResultBox } from "./ResultBox";
+import { quizName, quizQuestion } from "./text";
 import type { Outcome, QuizData } from "./types";
 
 function Chip({ children }: { children: React.ReactNode }) {
@@ -15,14 +15,6 @@ function Chip({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
-}
-
-// The server writes questions in Korean; in English we rebuild the ones whose parts we have.
-function questionFor(t: Strings, quiz: QuizData): string {
-  if (quiz.type === "higher_lower" && t.quizHigherLowerQuestion)
-    return t.quizHigherLowerQuestion(quiz.target.name, quiz.base.name, quiz.base.price);
-  if (quiz.type === "menu" && t.quizMenuQuestion) return t.quizMenuQuestion(quiz.menu_name, quiz.shown_price);
-  return quiz.question;
 }
 
 export function QuizCard() {
@@ -61,17 +53,17 @@ export function QuizCard() {
             {t.quizTypes[quiz.type]}
           </span>
 
-          {quiz.type === "guess" && <Chip>{quiz.quiz_name}</Chip>}
+          {quiz.type === "guess" && <Chip>{quizName(t, quiz)}</Chip>}
           {quiz.type === "menu" && (
             <div className="flex items-baseline gap-3">
-              <Chip>{quiz.menu_name}</Chip>
+              <Chip>{quizName(t, quiz)}</Chip>
               <span className="text-2xl font-bold text-slate-900">{t.quizShownPrice(quiz.shown_price)}</span>
             </div>
           )}
-          <p className="text-lg font-medium text-slate-800">{questionFor(t, quiz)}</p>
+          <p className="text-lg font-medium text-slate-800">{quizQuestion(t, quiz)}</p>
 
           {outcome ? (
-            <ResultBox outcome={outcome} source={quiz.source} />
+            <ResultBox outcome={outcome} quiz={quiz} />
           ) : quiz.type === "guess" ? (
             <GuessQuiz key={quiz.key} quiz={quiz} onAnswer={setOutcome} />
           ) : quiz.type === "higher_lower" ? (
@@ -80,12 +72,7 @@ export function QuizCard() {
                 { value: "higher", label: t.quizHigher },
                 { value: "lower", label: t.quizLower },
               ]}
-              onPick={(v) =>
-                setOutcome({
-                  result: v === quiz.answer ? "right" : "wrong",
-                  feedback: t.quizFeedback.higherLower(quiz.target.name, quiz.target.price),
-                })
-              }
+              onPick={(v) => setOutcome({ result: v === quiz.answer ? "right" : "wrong" })}
             />
           ) : (
             <ChoiceButtons
@@ -93,12 +80,7 @@ export function QuizCard() {
                 { value: "normal", label: t.quizNormal },
                 { value: "above", label: t.quizAbove },
               ]}
-              onPick={(v) =>
-                setOutcome({
-                  result: v === quiz.answer ? "right" : "wrong",
-                  feedback: t.quizFeedback.menu(quiz.answer, quiz.normal_low, quiz.normal_high),
-                })
-              }
+              onPick={(v) => setOutcome({ result: v === quiz.answer ? "right" : "wrong" })}
             />
           )}
 
