@@ -201,6 +201,8 @@ Source: 한국소비자원 참가격, 2026-10 기준
 
 ## 4. 데이터 모델 (초안)
 
+> 최신 설계는 [DB_DESIGN.md](DB_DESIGN.md) 참고. 히트맵(F3)용 테이블은 그 문서에만 있다.
+
 ```text
 Item                      # 검색/퀴즈 대상 품목
 - id
@@ -263,16 +265,20 @@ Review
 | GET | `/api/quiz/today` | 오늘의 퀴즈 문제 (정답 제외) |
 | POST | `/api/quiz/today/answer` | `{ guessed_price }` → 채점 결과 + 학습 카드 |
 | GET | `/api/heatmap?item_id=` | 자치구별 가격 데이터 (item_id 없으면 종합 지수) |
+| GET | `/api/heatmap/items` | 히트맵 품목 선택 목록 (서울 평균가 포함) |
+| GET | `/api/heatmap/districts/{region}` | 구 상세: 품목별 구 평균가와 서울 평균 대비 차이 |
 | GET | `/api/stores?q=` | 가게 자동완성 |
-| POST | `/api/stores` | 가게 등록 |
-| GET | `/api/reviews?q=&page=` | 리뷰 목록 / 검색 |
+| POST | `/api/stores` | 가게 등록 (이름+자치구가 같은 가게가 있으면 그 가게 반환) |
+| GET | `/api/reviews?q=&page=&size=` | 리뷰 목록 / 검색 (제목·본문·가게 이름) |
 | GET | `/api/reviews/{id}` | 리뷰 상세 |
-| POST | `/api/reviews` | 리뷰 작성 (비밀번호 포함) |
-| PUT | `/api/reviews/{id}` | 리뷰 수정 (요청 body에 비밀번호) |
+| POST | `/api/reviews` | 리뷰 작성 (비밀번호 포함, `store_id` 또는 새 `store` 중 하나) |
+| POST | `/api/reviews/{id}/verify` | 비밀번호 확인 (수정 화면 진입 전) |
+| PATCH | `/api/reviews/{id}` | 리뷰 수정 (보낸 필드만 변경, 요청 body에 비밀번호) |
 | DELETE | `/api/reviews/{id}` | 리뷰 삭제 (요청 body에 비밀번호) |
 
 - 비밀번호는 URL 쿼리에 넣지 않고 항상 요청 body로 보낸다
 - 응답에는 `password_hash`를 절대 포함하지 않는다
+- 비밀번호를 틀리면 403, 같은 리뷰에 10분 안에 5번 틀리면 429 (서버 메모리 기준이라 재시작하면 초기화)
 
 ---
 

@@ -1,7 +1,9 @@
 import Image from "next/image";
 import { SearchBar } from "@/components/SearchBar";
+import { HeatmapPreview } from "@/components/heatmap/HeatmapPreview";
 import { SectionHeader } from "@/components/SectionHeader";
 import { QuizCard } from "@/components/quiz/QuizCard";
+import { LatestReviews } from "@/components/reviews/LatestReviews";
 import { t } from "@/lib/strings";
 import { Nanum_Gothic } from "next/font/google";
 
@@ -39,20 +41,14 @@ export default function Home() {
           {/* ③ Heat map (public stats) */}
           <section className={`${card} flex-1`}>
             <SectionHeader title={t.heatmapTitle} href="/heatmap" />
-            <div className="relative min-h-32 flex-1 overflow-hidden rounded-xl bg-stone-50">
-              <div className="absolute left-[8%] top-1/4 h-24 w-24 rounded-full bg-yellow-200/80 blur-xl" />
-              <div className="absolute left-1/3 top-[20%] h-28 w-32 rounded-full bg-brand/60 blur-xl" />
-              <div className="absolute right-[8%] top-1/3 h-24 w-24 rounded-full bg-amber-300/60 blur-xl" />
-            </div>
-            <p className="mt-2 text-xs text-slate-500">{t.heatmapSource}</p>
+            <HeatmapPreview />
+            <p className="mt-auto pt-2 text-xs text-slate-500">{t.heatmapSource}</p>
           </section>
 
           {/* ④ Reviews (own build) */}
           <section className={`${card} flex-1`}>
             <SectionHeader title={t.reviewTitle} href="/reviews" />
-            <div className="flex min-h-24 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-              {t.reviewEmpty}
-            </div>
+            <LatestReviews />
           </section>
         </div>
       </div>

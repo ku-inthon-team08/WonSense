@@ -12,7 +12,10 @@ npm run dev                  # http://localhost:3000
 | Path | What |
 | --- | --- |
 | `src/app/page.tsx` | Home: ① search, ② quiz, ③ heat map, ④ review |
-| `src/app/{search,quiz,heatmap,reviews}` | Feature pages (stubs for now) |
+| `src/app/reviews` | F4 review board: list/search, `new`, `[id]` (detail, edit, delete) |
+| `src/app/{search,quiz,heatmap}` | Feature pages (stubs for now) |
+| `src/components/reviews/` | F4 review UI (store picker, form, password dialog) |
+| `src/lib/reviews.ts` | Review/store types and API calls |
 | `src/components/quiz/` | F2 quiz UI |
 | `src/lib/api.ts` | Fetch helper for the backend |
 | `src/lib/strings.ts` | All UI strings (for the English version later) |

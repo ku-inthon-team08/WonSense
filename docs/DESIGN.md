@@ -29,7 +29,7 @@
 | 토큰 | 값 | 쓰는 곳 |
 | --- | --- | --- |
 | `brand` | `#BE9C34` (금색) | 상단부 배경, 섹션 제목의 점·화살표, 주요 버튼, 링크, 아이콘 |
-| `brand-pale` | `#ECE4D2` (베이지) | 페이지 배경, 상단부 태그라인 글씨 |
+| `brand-pale` | `#ECE4D2` (베이지) | 페이지 배경, 상단부 태그라인 글씨, 선택된 행·드롭다운 hover 하이라이트 |
 
 ### 1.2 보조 색 (Tailwind 기본 팔레트)
 
@@ -44,6 +44,7 @@
 ### 1.3 쓰지 않는 색
 
 - **보라·남색·분홍 계열** (`indigo`, `violet`, `purple`, `pink` …): create-next-app 초기 코드에서 남은 색. 보이면 `brand`로 바꾼다.
+- **예외 — 의미를 가진 색**: 히트맵 색 스케일(저렴=파랑, 비쌈=빨강, `src/lib/heatmap.ts`), 퀴즈 정답/오답(초록/빨강), 오류 문구(`rose`)는 데이터·상태를 나타내므로 브랜드 색으로 바꾸지 않는다.
 - 강조색이 더 필요하면 노란 계열(`yellow`, `amber`)에서 고르고, 새 토큰이 필요하면 `globals.css`에 추가한 뒤 이 문서에 적는다.
 
 ---
@@ -115,6 +116,8 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 
 - 카드 안쪽에 영역을 나눌 때는 `rounded-xl bg-stone-100 p-4` 박스를 쓴다.
 - 회색(`shadow-sm`, `shadow-md` 등) 그림자나 `border`로 입체감을 주지 않는다.
+- **예외 — 떠 있는 요소**: 툴팁, 드롭다운 목록처럼 다른 요소 위에 겹쳐 뜨는 것은 `border border-slate-200 shadow-lg`를 쓴다.
+- 리뷰 카드처럼 눌러서 이동하는 카드의 hover는 `hover:ring-1 hover:ring-brand/50`.
 
 ---
 
@@ -134,15 +137,19 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 
 ### 버튼·링크
 
-- 주요 버튼: `rounded-lg bg-brand px-4 py-2 font-medium text-white`
+- 주요 버튼: `rounded-lg bg-brand px-4 py-2 font-medium text-white` (hover는 `hover:bg-brand/90`)
+- 보조 버튼: `rounded-lg border border-brand px-4 py-2 font-medium text-brand`
+- 선택된 칩/토글: `border-brand bg-brand text-white`
 - 텍스트 링크: `text-brand`
+- 입력칸 포커스: `focus:border-brand`
 
 ---
 
 ## 6. 문구
 
 - 모든 화면 문구는 [`strings.ts`](../frontend/src/lib/strings.ts)의 `strings.ko`에 추가하고 `t.키이름`으로 쓴다.
-- 섹션 이름은 한국어로 통일: **오늘의 퀴즈 · 히트맵 · 리뷰 · 검색**
+- 섹션 이름은 한국어로 통일: **물가 퀴즈 · 히트맵 · 리뷰 · 검색**
+- "← 홈" 링크는 `t.home`을 쓴다.
 
 ---
 
@@ -150,10 +157,9 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 
 정해지면 이 문서를 업데이트한다. 그 전까지는 현재 코드 상태를 따른다.
 
-1. 퀴즈 입력칸·리뷰 빈 상태의 회색 테두리(`slate-300`)를 따뜻한 회색/금색 계열로 바꿀지
-2. 상세 페이지(`/search`, `/quiz`, `/heatmap`, `/reviews`)에도 금색 상단부를 넣을지
-3. 히트맵 미리보기를 실제 서울 지도 모양으로 바꿀지
-4. 금색 배경 위 흰 글씨·베이지 글씨의 대비가 웹 접근성 권장치(4.5:1)보다 낮은 문제를 어떻게 할지
+1. 입력칸·리뷰 빈 상태의 회색 테두리(`slate-300`)를 따뜻한 회색/금색 계열로 바꿀지
+2. 상세 페이지(`/search`, `/quiz`, `/heatmap`, `/reviews`)에도 금색 상단부를 넣을지, 상세 페이지 최대 폭을 통일할지 (지금은 페이지마다 다름)
+3. 금색 배경 위 흰 글씨·베이지 글씨의 대비가 웹 접근성 권장치(4.5:1)보다 낮은 문제를 어떻게 할지
 
 ---
 
