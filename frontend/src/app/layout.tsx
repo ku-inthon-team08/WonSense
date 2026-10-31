@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+import { BackendWarmUp } from "@/components/BackendWarmUp";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-brand-pale text-slate-900">
+        <BackendWarmUp />
         <LanguageToggle />
         {children}
       </body>

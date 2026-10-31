@@ -1,5 +1,7 @@
 import base64
 import inspect
+import json
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -10,13 +12,15 @@ from app.db.supabase import get_supabase
 from app.main import app
 from app.routers.items import get_items, get_menus
 from app.core.claude import get_claude, get_llm_model
+from app.services.scan_match import match_line, parse_amount, quantity_ratio
 from app.services.scan import (
     ScannedLine,
     ScanOutput,
     catalog_text,
     judge_line,
     load_reference,
-    parse_scan_json,
+    READ_MAX_TOKENS,
+    parse_read_json,
     summarize,
     verdict,
 )
@@ -195,6 +199,7 @@ def test_scan_endpoint():
     app.dependency_overrides[get_menus] = lambda: MENUS
     app.dependency_overrides[get_supabase] = lambda: FakeSupabase()
     app.dependency_overrides[get_claude] = lambda: claude
+    app.dependency_overrides[get_llm_model] = lambda: "claude-haiku-5-5"  # 로컬 .env의 LLM_MODEL과 무관하게
     image = "data:image/png;base64," + base64.b64encode(b"fake-png").decode()
     try:
         client = TestClient(app)
@@ -218,33 +223,71 @@ def test_scan_endpoint():
         app.dependency_overrides.clear()
 
 
-class FakeGatewayLLM:
-    """Anthropic 호환 게이트웨이(DeepSeek 등): messages.create만 쓰고 텍스트로 JSON을 돌려준다."""
+def read_line(**kw) -> dict:
+    base = {"name": "계란 30구", "name_en": "eggs", "price": 14400, "quantity": "30구", "kind": "grocery",
+            "description_en": "A tray of 30 eggs.", "spice_level": None, "contains": ["egg"], "vegetarian": True}
+    return {**base, **kw}
 
-    def __init__(self, text):
+
+class FakeGatewayLLM:
+    """Anthropic 호환 게이트웨이(DeepSeek 등): 스트리밍으로 받고 텍스트로 JSON을 돌려준다."""
+
+    def __init__(self, text, stop_reason="end_turn"):
         self.calls = []
         self.text = text
-        self.messages = SimpleNamespace(create=self._create)
+        self.stop_reason = stop_reason
+        self.messages = SimpleNamespace(stream=self._stream)
 
-    def _create(self, **kw):
+    def _stream(self, **kw):
         # 진짜 SDK에 없는 인자를 보내면 실제 서버에서처럼 TypeError가 나게 한다
-        inspect.signature(Messages.create).bind(None, **kw)
+        inspect.signature(Messages.stream).bind(None, **kw)
         self.calls.append(kw)
-        return SimpleNamespace(content=[SimpleNamespace(type="text", text=self.text)], stop_reason="end_turn")
+        content = [SimpleNamespace(type="text", text=self.text)] if self.text else [SimpleNamespace(type="thinking")]
+        final = SimpleNamespace(content=content, stop_reason=self.stop_reason)
+        return nullcontext(SimpleNamespace(get_final_message=lambda: final))
 
 
-def test_parse_scan_json_tolerates_fences_and_rejects_bad_output():
-    out = ScanOutput(lines=[line()])
-    assert parse_scan_json(f"```json\n{out.model_dump_json()}\n```") == out
-    assert parse_scan_json(f"Here you go: {out.model_dump_json()} Done.") == out
+def test_parse_read_json_tolerates_fences_and_rejects_bad_output():
+    text = json.dumps({"lines": [read_line()]}, ensure_ascii=False)
+    assert parse_read_json("```json\n" + text + "\n```").lines[0].name == "계란 30구"
+    assert parse_read_json(f"Here you go: {text} Done.").lines[0].kind == "grocery"
     with pytest.raises(ValueError):
-        parse_scan_json("no json here")
+        parse_read_json("no json here")
     with pytest.raises(ValueError):
-        parse_scan_json('{"lines": [{"name": "계란"}]}')
+        parse_read_json('{"lines": [{"name": "계란"}]}')
+
+
+def test_parse_amount_and_quantity_ratio():
+    assert parse_amount("계란 30구") == (30, "개")
+    assert parse_amount("콜라 1.5L") == (1500, "ml")
+    assert parse_amount("Domestic Draft Beer (0.5 Liter)") == (500, "ml")
+    assert parse_amount("라면 5개입 1봉") == (5, "개")
+    assert parse_amount("김치찌개") is None
+    assert quantity_ratio("30구", "10개") == 3
+    assert quantity_ratio("1.5L", "Soft Drink (Coca-Cola or Pepsi, 0.33 Liter Bottle)") == round(1500 / 330, 3)
+    assert quantity_ratio("1kg", "500g") == 2
+    # 단위가 다르거나(팩 vs 개) 모르면 같은 규격으로 본다
+    assert quantity_ratio("1팩", "10개") == 1
+    assert quantity_ratio(None, "10개") == 1
+
+
+def test_match_line_in_code():
+    entries = load_reference()["entries"]
+    item_id, ref, ratio = match_line("계란 30구", "eggs", "30구", "grocery", [EGGS, RAMYEON], entries)
+    assert (item_id, ref, ratio) == (1, None, 3)
+    # 식당 음식은 장보기 품목과 맞추지 않고 Numbeo 식당 한 끼로 둔다 (착한가격업소 메뉴는 judge_line이 먼저 찾는다)
+    item_id, ref, _ = match_line("계란말이", "rolled omelet", None, "dish", [EGGS], entries)
+    assert item_id is None and entries[ref]["item"].startswith("Meal at an Inexpensive Restaurant")
+    item_id, ref, ratio = match_line("콜라", "cola", "1.5L", "other", [EGGS], entries)
+    assert entries[ref]["item"].startswith("Soft Drink") and ratio > 4
+    assert match_line("수제 잼", "homemade jam", None, "grocery", [EGGS], entries) == (None, None, None)
 
 
 def test_scan_endpoint_with_non_claude_model():
-    llm = FakeGatewayLLM(ScanOutput(lines=[line()]).model_dump_json())
+    text = json.dumps({"lines": [read_line(), read_line(name="김치찌개", name_en="kimchi stew", price=9000,
+                                                          quantity=None, kind="dish", contains=["pork"])]},
+                      ensure_ascii=False)
+    llm = FakeGatewayLLM(text)
     app.dependency_overrides[get_items] = lambda: [EGGS, RAMYEON]
     app.dependency_overrides[get_menus] = lambda: MENUS
     app.dependency_overrides[get_supabase] = lambda: FakeSupabase()
@@ -254,14 +297,19 @@ def test_scan_endpoint_with_non_claude_model():
     try:
         client = TestClient(app)
         body = client.post("/api/scan", json={"image": image, "media_type": "image/png"}).json()
-        assert body["lines"][0]["matched"] is True
+        eggs, stew = body["lines"]
+        assert eggs["matched"] and eggs["basis"] == "official" and eggs["quantity_ratio"] == 3
+        assert stew["basis"] == "menu"  # 착한가격업소 메뉴가 Numbeo보다 먼저
         sent = llm.calls[0]
         assert sent["model"] == "deepseek-ai/DeepSeek-V4.1-Flash"
+        assert sent["max_tokens"] == READ_MAX_TOKENS
         assert "output_config" not in sent and "output_format" not in sent  # Claude 전용 옵션은 보내지 않는다
-        assert '"lines"' in sent["system"] and "1 | 계란 10개 | 10개" in sent["system"]
+        assert "Grocery catalog" not in sent["system"]  # 품목 대조는 코드가 한다
         assert sent["messages"][0]["content"][0]["type"] == "image"
 
         llm.text = "sorry, I can't read this"
+        assert client.post("/api/scan", json={"image": image}).status_code == 502
+        llm.text, llm.stop_reason = "", "max_tokens"  # 생각만 하다 한도를 다 쓴 경우
         assert client.post("/api/scan", json={"image": image}).status_code == 502
     finally:
         app.dependency_overrides.clear()
