@@ -3,11 +3,9 @@ export const strings = {
   ko: {
     appName: "WonSense",
     tagline: "서울 물가 감각의 모든 것",
-    home: "← 홈",
+    goHome: "비싼감? 홈으로",
     searchPlaceholder: "음식이나 물건을 검색해 보세요 (예: bibimbap, 소주)",
     quizTitle: "물가 퀴즈",
-    heatmapTitle: "히트맵",
-    reviewTitle: "리뷰",
     comingSoon: "준비 중",
     quizLoading: "문제를 불러오는 중…",
     quizRight: "정답! 🎯",
