@@ -56,7 +56,7 @@ export const scanPhoto = (image: string, district: string | null) =>
 const FAIR_BAND = 0.1;
 const RIPOFF = 0.3;
 
-export function verdictOf(diff: number): Verdict {
+function verdictOf(diff: number): Verdict {
   if (diff < -FAIR_BAND) return "cheap";
   if (diff <= FAIR_BAND) return "fair";
   return diff <= RIPOFF ? "pricey" : "ripoff";

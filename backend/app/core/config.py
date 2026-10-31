@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_LLM_MODEL = "claude-haiku-5-5"
+
 
 class Settings(BaseSettings):
     # .env에 아직 쓰지 않는 키가 있어도 서버가 뜨도록 extra="ignore"
@@ -10,7 +12,6 @@ class Settings(BaseSettings):
 
     supabase_url: str
     supabase_service_role_key: str
-    supabase_anon_key: str = ""
     # 서울 열린데이터광장 인증키. 예전 이름 SEOUL_API_KEY도 받는다
     seoul_openapi_key: str = Field("", validation_alias=AliasChoices("SEOUL_OPENAPI_KEY", "SEOUL_API_KEY"))
     anthropic_api_key: str = ""
@@ -21,7 +22,7 @@ class Settings(BaseSettings):
     #   LLM_MODEL=DeepSeek-V4.1-Flash-B300
     llm_base_url: str = ""
     llm_api_key: str = ""
-    llm_model: str = "claude-haiku-5-5"
+    llm_model: str = DEFAULT_LLM_MODEL
     # 공공데이터포털 일반 인증키 (Decoding). 한국소비자원 참가격 생필품 가격 수집에 쓴다
     data_go_kr_api_key: str = ""
     # 카카오 디벨로퍼스 REST API 키 (로컬 장소 검색). 식당 가격 수집 스크립트에서만 쓴다
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     @classmethod
     def default_llm_model(cls, v: str) -> str:
         # .env.example처럼 LLM_MODEL= 로 비워 두면 기본 Claude 모델을 쓴다
-        return v.strip() or "claude-haiku-5-5"
+        return v.strip() or DEFAULT_LLM_MODEL
 
     @field_validator("supabase_url")
     @classmethod

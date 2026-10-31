@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { SEOUL_DISTRICTS } from "@/lib/seoulDistricts";
+import { DISTRICT_NAME_EN } from "@/lib/districts";
 import { strings, type Locale, type Strings } from "@/lib/strings";
 
 // The language choice lives in the browser (localStorage), not a cookie: reading cookies on the server would
@@ -12,7 +12,7 @@ const STORAGE_KEY = "wonsense:lang";
 const listeners = new Set<() => void>();
 
 /** Saved choice, else the browser language (Korean browsers → ko, everything else → en). */
-export function currentLocale(): Locale {
+function currentLocale(): Locale {
   if (typeof window === "undefined") return "ko";
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -54,10 +54,8 @@ export function useT(): Strings {
 /** Current-language strings outside React (e.g. error messages built in lib/api.ts). */
 export const currentStrings = (): Strings => strings[currentLocale()];
 
-const EN_DISTRICT: Record<string, string> = Object.fromEntries(SEOUL_DISTRICTS.map((d) => [d.name, d.nameEn]));
-
 /** District names come from the data in Korean ("마포구"); show "Mapo-gu" in English. */
 export function useDistrictName(): (nameKo: string) => string {
   const locale = useLocale();
-  return (nameKo) => (locale === "en" ? (EN_DISTRICT[nameKo] ?? nameKo) : nameKo);
+  return (nameKo) => (locale === "en" ? (DISTRICT_NAME_EN[nameKo] ?? nameKo) : nameKo);
 }

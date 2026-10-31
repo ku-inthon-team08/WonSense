@@ -17,8 +17,9 @@ import httpx
 
 from app.core.config import get_settings
 from app.db.supabase import get_supabase
+from app.services.menus import round_to
 
-SWAGGER = "https://infuser.odcloud.kr/oas/docs?namespace=15083256/v1"
+SWAGGER ="https://infuser.odcloud.kr/oas/docs?namespace=15083256/v1"
 API = "https://api.odcloud.kr/api"
 PER_PAGE = 10000
 CONVENIENCE = ("CU", "GS25", "세븐일레븐", "이마트24", "미니스톱")
@@ -63,10 +64,6 @@ def is_convenience(store: str) -> bool:
     return any(store.startswith(c) for c in CONVENIENCE)
 
 
-def _round10(v: float) -> int:
-    return int(round(v / 10) * 10)
-
-
 def summarize(rows: list[dict]) -> list[dict]:
     """판매점별 가격 행을 상품별 한 행으로 요약한다. 세일·1+1 행과 가격이 없는 행은 뺀다."""
     regular: dict[str, list[dict]] = defaultdict(list)
@@ -90,13 +87,13 @@ def summarize(rows: list[dict]) -> list[dict]:
             {
                 "product_name": name,
                 "manufacturer": makers.most_common(1)[0][0] if makers else None,
-                "price_low": _round10(q1),
-                "price_median": _round10(median(prices)),
-                "price_high": _round10(q3),
+                "price_low": round_to(q1, 10),
+                "price_median": round_to(median(prices), 10),
+                "price_high": round_to(q3, 10),
                 "price_min": prices[0],
                 "price_max": prices[-1],
                 "store_count": len({r.get("판매업소") for r in rs}),
-                "convenience_price": _round10(median(cvs)) if cvs else None,
+                "convenience_price": round_to(median(cvs), 10) if cvs else None,
                 "reference_date": max(r["조사일"] for r in rs),
             }
         )

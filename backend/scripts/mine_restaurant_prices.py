@@ -164,7 +164,7 @@ def load_attempts(path: Path) -> set[str]:
     """이전 실행에서 이미 시도한 장소 ID (가격을 못 찾은 곳 포함). 다시 돌릴 때 비용을 두 번 쓰지 않게 건너뛴다."""
     if not path.exists():
         return set()
-    return {json.loads(line)["place_id"] for line in path.read_text().splitlines() if line.strip()}
+    return {json.loads(line)["place_id"] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
 
 
 def main() -> None:
@@ -200,7 +200,7 @@ def main() -> None:
 
     tried = saved = skipped = 0
     stop_reason = None
-    with httpx.Client(timeout=30) as kakao, attempts_path.open("a") as attempts:
+    with httpx.Client(timeout=30) as kakao, attempts_path.open("a", encoding="utf-8") as attempts:
         for area in args.areas:
             if stop_reason:
                 break

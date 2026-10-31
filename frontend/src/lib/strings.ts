@@ -22,7 +22,6 @@ const ko = {
     seeMore: "더 보기",
     heatmapLegendSteps: ["저렴", "조금 저렴", "평균", "조금 비쌈", "비쌈"],
     quizTitle: "물가 퀴즈",
-    comingSoon: "준비 중",
     quizLoading: "문제를 불러오는 중…",
     quizSource: "출처",
     quizNext: "다음 문제",
@@ -129,7 +128,6 @@ const ko = {
       spice: ["안 매워요", "약간 매워요", "보통 매워요", "아주 매워요"],
       vegetarian: "채식 가능",
       notVegetarian: "고기·해산물 포함",
-      contains: "포함",
       ingredient: {
         pork: "돼지고기",
         beef: "소고기",
@@ -160,7 +158,6 @@ const ko = {
       retry: "다시 시도",
       prev: "이전",
       next: "다음",
-      seeAll: "전체 보기",
       notFound: "리뷰를 찾을 수 없어요",
       backToList: "← 목록으로",
       edited: "수정됨",
@@ -200,7 +197,6 @@ const ko = {
       confirmEdit: "수정하려면 비밀번호를 입력하세요",
       confirmDelete: "삭제하려면 비밀번호를 입력하세요. 삭제하면 되돌릴 수 없어요.",
       confirm: "확인",
-      deleted: "리뷰를 삭제했어요",
     },
     storeCategory: {
       restaurant: "식당",
@@ -288,7 +284,6 @@ const en: Strings = {
   seeMore: "See more",
   heatmapLegendSteps: ["Cheaper", "Slightly cheaper", "Average", "Slightly pricier", "Pricier"],
   quizTitle: "Price quiz",
-  comingSoon: "Coming soon",
   quizLoading: "Loading a question…",
   quizSource: "Source",
   quizNext: "Next question",
@@ -400,7 +395,6 @@ const en: Strings = {
     spice: ["Not spicy", "Mildly spicy", "Spicy", "Very spicy"],
     vegetarian: "Vegetarian",
     notVegetarian: "Has meat or seafood",
-    contains: "Contains",
     ingredient: {
       pork: "Pork",
       beef: "Beef",
@@ -434,7 +428,6 @@ const en: Strings = {
     retry: "Try again",
     prev: "Previous",
     next: "Next",
-    seeAll: "See all",
     notFound: "Review not found",
     backToList: "← Back to list",
     edited: "Edited",
@@ -472,7 +465,6 @@ const en: Strings = {
     confirmEdit: "Enter the password to edit",
     confirmDelete: "Enter the password to delete. This can't be undone.",
     confirm: "Confirm",
-    deleted: "Review deleted",
   },
   storeCategory: {
     restaurant: "Restaurant",

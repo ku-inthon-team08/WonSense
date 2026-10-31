@@ -1,4 +1,8 @@
-from app.services.heatmap import aggregate_rows, build_heatmap, normalize_gu_code
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.routers.heatmap import get_snapshot
+from app.services.heatmap import SEOUL_REGION, aggregate_rows, build_heatmap, normalize_gu_code
 
 
 def test_aggregate_groups_by_spec_and_skips_bad_prices():
@@ -55,3 +59,45 @@ def test_index_is_relative_to_seoul_average():
     # 품목 1: 서울 평균 2000 → A 150%, B 50%. 품목 2: 둘 다 100% → 값 크기가 달라도 균등 반영
     assert d["a"]["index"] == 125.0
     assert d["b"]["index"] == 75.0
+
+
+def _row(item_id: int, region: str, price: int) -> dict:
+    name = "서울" if region == SEOUL_REGION else {"11680": "강남구", "11440": "마포구"}[region]
+    return {"item_id": item_id, "region": region, "region_name": name, "price_avg": price, "source": "src",
+            "items": {"name_ko": {1: "쌀 10kg", 2: "계란 10개"}[item_id], "unit": "-"}}
+
+
+SNAPSHOT = {
+    "reference_date": "2026-10-26",
+    "rows": [
+        _row(1, SEOUL_REGION, 30000), _row(2, SEOUL_REGION, 4000),
+        _row(1, "11680", 33000), _row(1, "11440", 27000),
+        _row(2, "11680", 4400), _row(2, "11440", 3600),
+    ],
+}
+
+
+def test_heatmap_endpoints_share_one_snapshot():
+    app.dependency_overrides[get_snapshot] = lambda: SNAPSHOT
+    try:
+        client = TestClient(app)
+
+        body = client.get("/api/heatmap").json()
+        assert body["reference_date"] == "2026-10-26" and body["source"] == "src"
+        assert [d["name"] for d in body["districts"]] == ["강남구", "마포구"]  # 서울 행은 지도에 안 나온다
+        assert body["districts"][0]["index"] == 110.0 and body["districts"][0]["price_avg"] is None
+
+        body = client.get("/api/heatmap", params={"item_id": 2}).json()
+        assert body["item_id"] == 2 and body["districts"][0]["price_avg"] == 4400
+        assert client.get("/api/heatmap", params={"item_id": 999}).status_code == 404
+
+        body = client.get("/api/heatmap/items").json()
+        assert [i["name"] for i in body["items"]] == ["계란 10개", "쌀 10kg"]  # 이름순
+        assert body["items"][1]["seoul_avg"] == 30000
+
+        body = client.get("/api/heatmap/districts/11680").json()
+        assert body["name"] == "강남구"
+        assert [(i["name"], i["diff_pct"]) for i in body["items"]] == [("쌀 10kg", 10.0), ("계란 10개", 10.0)]
+        assert client.get("/api/heatmap/districts/99999").status_code == 404
+    finally:
+        app.dependency_overrides.clear()

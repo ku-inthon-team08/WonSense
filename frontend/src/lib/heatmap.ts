@@ -88,4 +88,3 @@ export function binFor(diffPct: number, mode: ScaleMode): Bin {
 }
 
 export const formatPct = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v).toFixed(1)}%`;
-export const formatWon = (v: number) => `₩${v.toLocaleString("ko-KR")}`;

@@ -1,14 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  formatPct,
-  formatWon,
-  getDistrictDetail,
-  type DistrictItem,
-  type HeatmapDistrict,
-  type HeatmapItem,
-} from "@/lib/heatmap";
+import { formatKrw } from "@/lib/format";
+import { formatPct, getDistrictDetail, type DistrictItem, type HeatmapDistrict, type HeatmapItem } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
 import { useDistrictName, useT } from "@/lib/i18n";
 
@@ -66,11 +60,11 @@ export function DistrictPanel({ district, item, onClose }: Props) {
           <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-lg bg-slate-50 p-3">
               <dt className="text-slate-500">{dn(district.name)}</dt>
-              <dd className="text-lg font-bold tabular-nums">{formatWon(district.price_avg)}</dd>
+              <dd className="text-lg font-bold tabular-nums">{formatKrw(district.price_avg)}</dd>
             </div>
             <div className="rounded-lg bg-slate-50 p-3">
               <dt className="text-slate-500">{t.heatmapSeoulAvg}</dt>
-              <dd className="text-lg font-bold tabular-nums">{formatWon(item.seoul_avg)}</dd>
+              <dd className="text-lg font-bold tabular-nums">{formatKrw(item.seoul_avg)}</dd>
             </div>
           </dl>
         )
@@ -101,7 +95,7 @@ function ItemList({ title, items }: { title: string; items: DistrictItem[] }) {
             <li key={i.item_id} className="flex items-baseline justify-between gap-2 py-1.5">
               <span className="min-w-0 truncate" title={i.name}>{i.name}</span>
               <span className="shrink-0 text-right tabular-nums">
-                <span className="font-semibold">{formatWon(i.price_avg)}</span>{" "}
+                <span className="font-semibold">{formatKrw(i.price_avg)}</span>{" "}
                 <span className="text-xs text-slate-500">{formatPct(i.diff_pct)}</span>
               </span>
             </li>

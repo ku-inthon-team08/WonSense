@@ -24,10 +24,11 @@ npm run dev                  # http://localhost:3000
 
 | Path | What |
 | --- | --- |
-| `frontend/src/app/page.tsx` | 홈: ① 검색, ② 퀴즈, ③ 물가 지도, ④ 리뷰 |
-| `frontend/src/app/{search,quiz,heatmap,reviews}` | 기능 페이지 |
-| `frontend/src/components/quiz/` | 퀴즈 UI |
+| `frontend/src/app/page.tsx` | 홈: ① 검색, ② 퀴즈·환율, ③ 물가 지도, ④ 리뷰 |
+| `frontend/src/app/{search,quiz,heatmap,reviews,scan}` | 기능 페이지 |
+| `frontend/src/components/` | 기능별 UI (`quiz`, `heatmap`, `reviews`, `scan`, `search`, `fx`) |
 | `frontend/src/lib/api.ts` | FastAPI 백엔드 요청 도우미 |
-| `frontend/src/lib/strings.ts` | UI 문자열 및 영어 버전용 문구 |
-| `backend/app/` | FastAPI 앱, 설정, Supabase 연결 및 라우터 |
+| `frontend/src/lib/strings.ts` | 한국어·영어 UI 문자열 |
+| `backend/app/` | FastAPI 앱: 라우터(API), 서비스(계산), Supabase 연결 |
+| `backend/scripts/` | 가격 데이터 수집 스크립트 (로컬에서 실행) |
 | `supabase/migrations/` | 데이터베이스 마이그레이션 |

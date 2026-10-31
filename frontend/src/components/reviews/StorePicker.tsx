@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+import { DISTRICT_NAMES } from "@/lib/districts";
 import { searchKakaoPlaces } from "@/lib/kakao";
-import { DISTRICTS, STORE_CATEGORIES, searchStores, type NewStore, type Store, type StoreCategory } from "@/lib/reviews";
+import { STORE_CATEGORIES, searchStores, type NewStore, type Store, type StoreCategory } from "@/lib/reviews";
 import { useDistrictName, useT } from "@/lib/i18n";
+import { inputClass } from "@/lib/ui";
 
 import { StoreTag } from "./ReviewMeta";
 
 export type StoreChoice = { kind: "existing"; store: Store } | { kind: "new"; store: NewStore } | null;
-
-const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand";
 
 // Pick an existing store (autocomplete on GET /api/stores), a place from Kakao, or describe a new one.
 // The backend reuses a store with the same name + district, so duplicates are harmless.
@@ -93,7 +93,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
               className={`${inputClass} mt-1 text-sm`}
             >
               <option value="">{t.review.storeDistrictNone}</option>
-              {DISTRICTS.map((d) => (
+              {DISTRICT_NAMES.map((d) => (
                 <option key={d} value={d}>
                   {dn(d)}
                 </option>

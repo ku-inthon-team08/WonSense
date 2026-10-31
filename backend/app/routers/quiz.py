@@ -1,19 +1,18 @@
 import random
-import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.db.supabase import get_supabase
+from app.core.cache import TtlCache
+from app.db.supabase import fetch_all, get_supabase
 from app.routers.items import get_menus
 from app.services.heatmap import SEOUL_REGION
 from app.services.quiz import QUIZ_TYPES, QuizType, build_guess, build_higher_lower, build_menu, menu_stats
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
-PAGE = 1000
-CACHE_TTL = 600  # 가격은 월 1회 갱신되므로 10분 캐시면 충분하다
-_cache: dict = {"at": 0.0, "items": None, "menus_at": 0.0, "menus": None}
+_items = TtlCache()
+_menu_stats = TtlCache()
 
 
 def _load_quiz_items(supabase: Client) -> list[dict]:
@@ -29,22 +28,14 @@ def _load_quiz_items(supabase: Client) -> list[dict]:
         .data
     )
     stats: dict[int, dict] = {}
-    start = 0
-    while True:
-        batch = (
-            supabase.table("price_stats")
-            .select("item_id, price_avg, source, reference_date")
-            .eq("region", SEOUL_REGION)
-            .order("reference_date", desc=True)
-            .range(start, start + PAGE - 1)
-            .execute()
-            .data
-        )
-        for r in batch:
-            stats.setdefault(r["item_id"], r)
-        if len(batch) < PAGE:
-            break
-        start += PAGE
+    for r in fetch_all(
+        lambda: supabase.table("price_stats")
+        .select("item_id, price_avg, source, reference_date")
+        .eq("region", SEOUL_REGION)
+        .order("reference_date", desc=True)
+        .order("id")
+    ):
+        stats.setdefault(r["item_id"], r)
 
     return [
         {
@@ -66,19 +57,11 @@ def _load_quiz_items(supabase: Client) -> list[dict]:
 
 
 def get_quiz_items(supabase: Client = Depends(get_supabase)) -> list[dict]:
-    now = time.monotonic()
-    if _cache["items"] is None or now - _cache["at"] > CACHE_TTL:
-        _cache["items"] = _load_quiz_items(supabase)
-        _cache["at"] = now
-    return _cache["items"]
+    return _items.get(lambda: _load_quiz_items(supabase))
 
 
 def get_menu_stats(menus: dict = Depends(get_menus)) -> list[dict]:
-    now = time.monotonic()
-    if _cache["menus"] is None or now - _cache["menus_at"] > CACHE_TTL:
-        _cache["menus"] = menu_stats(menus["rows"])
-        _cache["menus_at"] = now
-    return _cache["menus"]
+    return _menu_stats.get(lambda: menu_stats(menus["rows"]))
 
 
 @router.get("/random")

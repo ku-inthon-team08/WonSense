@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { useApi } from "@/lib/useApi";
 import { ChoiceButtons } from "./ChoiceButtons";
 import { GuessQuiz } from "./GuessQuiz";
 import { ResultBox } from "./ResultBox";
@@ -21,28 +22,17 @@ function Chip({ children }: { children: React.ReactNode }) {
 // mascot: 문제 영역 오른쪽에 전구 든 호랑이를 둔다 (홈 카드용, 넓은 화면에서만)
 export function QuizCard({ mascot = false }: { mascot?: boolean }) {
   const t = useT();
-  const [quiz, setQuiz] = useState<QuizData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // Each round is one request; `exclude` keeps the same item from coming up twice in a row.
+  const [round, setRound] = useState({ n: 0, exclude: "" });
   const [outcome, setOutcome] = useState<Outcome | null>(null);
-
-  const fetchQuiz = useCallback((exclude?: string) => {
-    const qs = exclude ? `?exclude=${encodeURIComponent(exclude)}` : "";
-    return api<QuizData>(`/api/quiz/random${qs}`)
-      .then(setQuiz)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchQuiz();
-  }, [fetchQuiz]);
+  const { data: quiz, error } = useApi(`quiz:${round.n}`, (signal) => {
+    const qs = round.exclude ? `?exclude=${encodeURIComponent(round.exclude)}` : "";
+    return api<QuizData>(`/api/quiz/random${qs}`, { signal });
+  });
 
   function next(exclude: string) {
-    setLoading(true);
-    setError(false);
     setOutcome(null);
-    fetchQuiz(exclude);
+    setRound({ n: round.n + 1, exclude });
   }
 
   return (
@@ -58,7 +48,7 @@ export function QuizCard({ mascot = false }: { mascot?: boolean }) {
           className="pointer-events-none absolute -right-2 top-3 hidden h-28 w-auto lg:block"
         />
       )}
-      {loading || !quiz ? (
+      {!quiz ? (
         <p className="text-slate-600">{error ? t.quizError : t.quizLoading}</p>
       ) : (
         <>
