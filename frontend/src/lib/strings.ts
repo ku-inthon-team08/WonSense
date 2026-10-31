@@ -234,6 +234,15 @@ const ko = {
         return `${verdict}. 착한가격업소는 보통 ${krw(low)}~${krw(high)}원이에요.`;
       },
     },
+    fx: {
+      title: "오늘의 환율",
+      unit: { USD: "1달러", JPY: "100엔", CNY: "1위안", EUR: "1유로" } as Record<string, string>,
+      vsPrev: "▲▼ 전일 대비",
+      trend: (n: number) => `최근 ${n}일`,
+      asOf: (d: string) => `${d} 기준`,
+      note: "중앙은행 기준 환율이라 실제 환전·카드 결제 금액과는 달라요.",
+      error: "환율 정보를 불러오지 못했어요",
+    },
     lang: "ko" as "ko" | "en",
     dateLocale: "ko-KR",
     // Data sources arrive from the backend as Korean text; the English set maps the known ones.
@@ -486,6 +495,15 @@ const en: Strings = {
       const verdict = answer === "normal" ? "That's a normal price" : "That's on the pricey side";
       return `${verdict}. Good-price restaurants usually charge ₩${krw(low)}–₩${krw(high)}.`;
     },
+  },
+  fx: {
+    title: "Today's exchange rates",
+    unit: { USD: "US$1", JPY: "¥100", CNY: "CN¥1", EUR: "€1" },
+    vsPrev: "▲▼ vs previous day",
+    trend: (n: number) => `Last ${n} days`,
+    asOf: (d: string) => `As of ${d}`,
+    note: "Central bank reference rates. Money changers and card payments will differ.",
+    error: "Couldn't load exchange rates",
   },
   lang: "en",
   dateLocale: "en-US",
