@@ -1,4 +1,3 @@
-from datetime import date, timedelta
 from functools import lru_cache
 
 import anthropic
@@ -8,7 +7,7 @@ from supabase import Client
 from app.core.config import get_settings
 from app.db.supabase import get_supabase
 from app.services.heatmap import SEOUL_REGION
-from app.services.quiz import RECENT_DAYS, generate_quiz_text, pick_item, today_kst
+from app.services.quiz import QuizText, fallback_quiz_text, generate_quiz_text, pick_random
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
@@ -18,74 +17,88 @@ def get_claude() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
 
 
-def _create_daily_quiz(supabase: Client, claude: anthropic.Anthropic, day: date) -> None:
-    items = supabase.table("items").select("id, name_ko, unit").eq("quiz_enabled", True).execute().data
-    if not items:
-        raise HTTPException(status_code=404, detail="퀴즈 대상 품목이 없습니다")
-
-    since = (day - timedelta(days=RECENT_DAYS)).isoformat()
-    recent = supabase.table("daily_quizzes").select("item_id").gte("date", since).execute().data
-    item_id = pick_item([i["id"] for i in items], {r["item_id"] for r in recent}, day)
-    item = next(i for i in items if i["id"] == item_id)
-
-    stats = (
+def _latest_seoul_stats(supabase: Client, item_ids: list[int]) -> dict[int, dict]:
+    rows = (
         supabase.table("price_stats")
-        .select("price_min, price_avg, price_max, source, reference_date")
-        .eq("item_id", item_id)
+        .select("item_id, price_min, price_avg, price_max, source, reference_date")
+        .in_("item_id", item_ids)
         .eq("region", SEOUL_REGION)
         .order("reference_date", desc=True)
-        .limit(1)
         .execute()
         .data
     )
-    if not stats:
-        raise HTTPException(status_code=404, detail="해당 품목의 가격 데이터가 없습니다")
+    latest: dict[int, dict] = {}
+    for r in rows:
+        latest.setdefault(r["item_id"], r)
+    return latest
+
+
+def _quiz_text(supabase: Client, claude: anthropic.Anthropic, item: dict, stat: dict) -> QuizText:
+    """캐시에 있으면 그대로 쓰고, 없으면 Claude로 만들어 저장한다. 실패하면 고정 문구."""
+    cached = (
+        supabase.table("quiz_texts")
+        .select("question, explanation")
+        .eq("item_id", item["id"])
+        .eq("reference_date", stat["reference_date"])
+        .execute()
+        .data
+    )
+    if cached:
+        return QuizText(**cached[0])
 
     try:
-        text = generate_quiz_text(claude, item, stats[0])
-    except (anthropic.APIError, ValueError) as e:
-        raise HTTPException(status_code=503, detail=f"퀴즈 생성 실패: {e}")
+        text = generate_quiz_text(claude, item, stat)
+    except (anthropic.APIError, ValueError):
+        return fallback_quiz_text(item)
 
-    # 동시 요청이 겹쳐도 먼저 저장된 문제 하나만 남긴다
-    supabase.table("daily_quizzes").upsert(
+    supabase.table("quiz_texts").upsert(
         {
-            "date": day.isoformat(),
-            "item_id": item_id,
+            "item_id": item["id"],
+            "reference_date": stat["reference_date"],
             "question": text.question,
-            "answer_price": stats[0]["price_avg"],
             "explanation": text.explanation,
         },
-        on_conflict="date",
+        on_conflict="item_id,reference_date",
         ignore_duplicates=True,
     ).execute()
+    return text
 
 
-def _load_daily_quiz(supabase: Client, day: date) -> dict | None:
-    rows = (
-        supabase.table("daily_quizzes")
-        .select("date, question, items(name_ko, unit)")
-        .eq("date", day.isoformat())
-        .execute()
-        .data
-    )
-    return rows[0] if rows else None
-
-
-@router.get("/today")
-def get_today_quiz(
+@router.get("/random")
+def get_random_quiz(
+    exclude: int | None = None,
     supabase: Client = Depends(get_supabase),
     claude: anthropic.Anthropic = Depends(get_claude),
 ) -> dict:
-    """오늘의 문제. 하루 한 번만 생성해 저장하고, 정답과 해설은 응답에 넣지 않는다."""
-    day = today_kst()
-    quiz = _load_daily_quiz(supabase, day)
-    if quiz is None:
-        _create_daily_quiz(supabase, claude, day)
-        quiz = _load_daily_quiz(supabase, day)
+    """랜덤 퀴즈 한 문제. 로그인이 없으므로 정답과 해설을 함께 보내고 채점은 프론트에서 한다.
+    exclude: 직전 품목 id (같은 문제가 연속으로 나오지 않게)."""
+    items = (
+        supabase.table("items")
+        .select("id, name_ko, unit, quiz_tolerance_correct")
+        .eq("quiz_enabled", True)
+        .execute()
+        .data
+    )
+    stats = _latest_seoul_stats(supabase, [i["id"] for i in items]) if items else {}
+    candidates = [i for i in items if i["id"] in stats]
+    if not candidates:
+        raise HTTPException(status_code=404, detail="퀴즈 대상 품목이 없습니다")
+
+    item_id = pick_random([i["id"] for i in candidates], exclude)
+    item = next(i for i in candidates if i["id"] == item_id)
+    stat = stats[item_id]
+    text = _quiz_text(supabase, claude, item, stat)
 
     return {
-        "date": quiz["date"],
-        "question": quiz["question"],
-        "name": quiz["items"]["name_ko"],
-        "unit": quiz["items"]["unit"],
+        "item_id": item_id,
+        "name": item["name_ko"],
+        "unit": item["unit"],
+        "question": text.question,
+        "explanation": text.explanation,
+        "answer_price": stat["price_avg"],
+        "price_min": stat["price_min"],
+        "price_max": stat["price_max"],
+        "tolerance": float(item["quiz_tolerance_correct"]),
+        "source": stat["source"],
+        "reference_date": stat["reference_date"],
     }
