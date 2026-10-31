@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.db.supabase import get_supabase
 from app.main import app
 from app.routers.items import get_items
-from app.routers.quiz import get_claude
+from app.core.claude import get_claude
 from app.services.scan import ScannedLine, ScanOutput, catalog_text, judge_line, load_reference, summarize, verdict
 
 EGGS = {"item_id": 1, "name_ko": "계란 10개", "unit": "10개", "price_min": 3500, "price_avg": 4000, "price_max": 4800,
