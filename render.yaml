@@ -1,0 +1,26 @@
+# Render Blueprint: FastAPI 백엔드 (backend/)
+# Render 대시보드 > New > Blueprint 에서 이 리포를 고르면 아래 설정으로 서비스가 만들어진다.
+# sync: false 인 값은 생성할 때 대시보드에서 직접 입력한다 (깃에 키를 넣지 않는다).
+services:
+  - type: web
+    name: wonsense-api
+    runtime: python
+    plan: free # 15분 동안 요청이 없으면 잠들고, 다음 첫 요청이 30초~1분 걸린다
+    region: singapore # 한국에서 가장 가까운 리전. 만든 뒤에는 바꿀 수 없다
+    branch: main
+    autoDeployTrigger: commit # main에 커밋이 올라오면 자동 배포
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.8
+      - key: SUPABASE_URL # https://<project-ref>.supabase.co (대시보드 주소 아님)
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY # 퀴즈 생성
+        sync: false
+      # CORS: won-sense*.vercel.app 은 코드에서 자동 허용한다.
+      # 프론트 주소가 다르면 대시보드에서 CORS_ORIGINS (쉼표로 여러 개)를 추가한다.
