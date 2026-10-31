@@ -1,26 +1,36 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { FX_SYMBOL, fetchFx, formatFxKrw, type FxCurrency } from "@/lib/fx";
-import { ExchangeIcon } from "@/components/icons/SectionIcons";
+import { ArrowRightIcon, ExchangeIcon } from "@/components/icons/SectionIcons";
 import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
-// Exchange rates under the quiz: four stat tiles (value + day-over-day change + 14-day sparkline).
-export function FxRates() {
+// Exchange rates: four stat tiles (value + day-over-day change + 14-day sparkline).
+// Home passes `href` so the title links to /fx; the /fx page passes `hideTitle` because PageShell already shows it.
+export function FxRates({ href, hideTitle = false }: { href?: string; hideTitle?: boolean }) {
   const t = useT();
   const { data, error } = useApi("fx", (signal) => fetchFx(signal));
 
   return (
     <section aria-label={t.fx.title}>
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 className="flex items-center gap-2.5 whitespace-nowrap text-lg font-semibold text-slate-900">
-          <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-brand-ink">
-            <ExchangeIcon className="h-4 w-4" />
-          </span>
-          {t.fx.title}
-        </h2>
+        {!hideTitle && (
+          <h2 className="whitespace-nowrap text-lg font-semibold text-slate-900">
+            {href ? (
+              <Link href={href} className="group flex items-center gap-2.5">
+                <FxTitle title={t.fx.title} />
+                <ArrowRightIcon className="h-4 w-4 text-brand-ink transition-transform group-hover:translate-x-1" />
+              </Link>
+            ) : (
+              <span className="flex items-center gap-2.5">
+                <FxTitle title={t.fx.title} />
+              </span>
+            )}
+          </h2>
+        )}
         {data && (
           <span className="whitespace-nowrap text-xs text-slate-500">
             {t.fx.asOf(data.date)} · {t.fx.vsPrev}
@@ -50,6 +60,17 @@ export function FxRates() {
         </p>
       )}
     </section>
+  );
+}
+
+function FxTitle({ title }: { title: string }) {
+  return (
+    <>
+      <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-brand-ink">
+        <ExchangeIcon className="h-4 w-4" />
+      </span>
+      {title}
+    </>
   );
 }
 

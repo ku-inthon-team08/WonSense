@@ -14,11 +14,11 @@ export default function Home() {
   const t = useT();
   return (
     <main className="flex flex-1 flex-col">
-      {/* 상단부: 호랑이 + 로고 + 태그라인 + ① 검색 + 스캔 */}
+      {/* 첫 화면: 로고 + 헤드라인 + ① 스캔·검색 + 바로가기 + 호랑이·동전 */}
       <HomeHero />
 
       {/* 2×2 카드: 퀴즈 | 지도 / 환율 | 리뷰 */}
-      <div className={`${frame} grid flex-1 gap-6 py-6 md:grid-cols-2 md:py-8`}>
+      <div id="home-content" className={`${frame} grid flex-1 snap-start gap-6 py-6 md:grid-cols-2 md:py-8`}>
         {/* ② 물가 퀴즈 (LLM) */}
         <section className={card}>
           <SectionHeader title={t.quizTitle} href="/quiz" icon={<QuizIcon className="h-4 w-4" />} />
@@ -38,7 +38,7 @@ export default function Home() {
 
         {/* 오늘의 환율 */}
         <section className={card}>
-          <FxRates />
+          <FxRates href="/fx" />
         </section>
 
         {/* ④ 리뷰 (자체 개발) */}
