@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import { CameraIcon } from "@/components/icons/CameraIcon";
 import { formatKrw } from "@/lib/reviews";
-import { scanPhoto, shrinkPhoto, type ScanLine, type ScanResponse, type Verdict } from "@/lib/scan";
+import { rejudge, scanPhoto, shrinkPhoto, type ScanLine, type ScanResponse, type Verdict } from "@/lib/scan";
 import { SEOUL_DISTRICTS } from "@/lib/seoulDistricts";
 import { t } from "@/lib/strings";
 
@@ -23,7 +23,7 @@ const districtNames = [...SEOUL_DISTRICTS].map((d) => d.name).sort((a, b) => a.l
 type State =
   | { step: "idle" }
   | { step: "reading"; photo: string }
-  | { step: "done"; photo: string; result: ScanResponse; district: string }
+  | { step: "done"; photo: string; result: ScanResponse }
   | { step: "error"; photo: string | null; message: string };
 
 export function ScanView() {
@@ -39,7 +39,7 @@ export function ScanView() {
       photo = await shrinkPhoto(file);
       setState({ step: "reading", photo });
       const result = await scanPhoto(photo, district || null);
-      setState({ step: "done", photo, result, district });
+      setState({ step: "done", photo, result });
     } catch (e) {
       setState({ step: "error", photo, message: (e as Error).message });
     }
@@ -63,6 +63,7 @@ export function ScanView() {
             ))}
           </select>
         </label>
+        <p className="-mt-2 mb-4 text-xs text-slate-500">{t.scan.districtHint}</p>
 
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element -- local data URL preview
@@ -117,9 +118,18 @@ export function ScanView() {
         </div>
       )}
 
-      {state.step === "done" && <ScanResult result={state.result} district={state.district} />}
+      {/* re-judged on every district change: no new Claude call */}
+      {state.step === "done" && <ScanResult result={rejudge(state.result, district)} district={district} />}
     </div>
   );
+}
+
+// Which average the total was compared with: the district, Seoul, or both when lines mix.
+function summaryPlace(lines: ScanLine[], district: string): string {
+  const matched = lines.filter((l) => l.matched);
+  const local = matched.filter((l) => l.compare_region).length;
+  if (local === 0) return t.scan.seoul;
+  return local === matched.length ? district : `${district}·${t.scan.seoul}`;
 }
 
 function ScanResult({ result, district }: { result: ScanResponse; district: string }) {
@@ -134,7 +144,7 @@ function ScanResult({ result, district }: { result: ScanResponse; district: stri
           <p className="text-sm">{t.scan.summary(summary.matched_count)}</p>
           <p className="mt-1 text-2xl font-bold">{t.scan.verdict[summary.verdict]}</p>
           <p className="mt-1 text-sm">
-            {formatKrw(summary.total_price!)} · {t.scan.diff(summary.diff_pct!)}
+            {formatKrw(summary.total_price!)} · {t.scan.diff(summary.diff_pct!, summaryPlace(lines, district))}
           </p>
         </section>
       )}
@@ -152,6 +162,7 @@ function ScanResult({ result, district }: { result: ScanResponse; district: stri
 
 function LineCard({ line, district }: { line: ScanLine; district: string }) {
   const [low, high] = line.seoul_range ?? [null, null];
+  const place = line.compare_region ?? t.scan.seoul;
   return (
     <article className={card}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -181,23 +192,27 @@ function LineCard({ line, district }: { line: ScanLine; district: string }) {
               <dd className="text-lg font-bold">{formatKrw(line.price)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">{t.scan.seoulAvg}</dt>
-              <dd className="text-lg font-bold">{formatKrw(line.seoul_avg!)}</dd>
+              <dt className="text-slate-500">{line.compare_region ? t.scan.districtAvg(line.compare_region) : t.scan.seoulAvg}</dt>
+              <dd className="text-lg font-bold">{formatKrw(line.compare_avg!)}</dd>
             </div>
+            {line.compare_region && (
+              <div>
+                <dt className="text-slate-500">{t.scan.seoulAvg}</dt>
+                <dd>{formatKrw(line.seoul_avg!)}</dd>
+              </div>
+            )}
             {low !== null && high !== null && (
               <div>
                 <dt className="text-slate-500">{t.scan.range}</dt>
                 <dd>{formatKrw(low)} ~ {formatKrw(high)}</dd>
               </div>
             )}
-            {district && line.district_avg && (
-              <div>
-                <dt className="text-slate-500">{t.scan.districtAvg(district)}</dt>
-                <dd>{formatKrw(line.district_avg)}</dd>
-              </div>
-            )}
           </dl>
-          <p className="mt-2 text-sm font-medium">{t.scan.diff(line.diff_pct!)}</p>
+          <p className="mt-2 text-sm font-medium">{t.scan.diff(line.diff_pct!, place)}</p>
+          {line.compare_region && (
+            <p className="mt-1 text-sm text-slate-600">{t.scan.diff(line.seoul_diff_pct!, t.scan.seoul)}</p>
+          )}
+          {district && !line.compare_region && <p className="mt-1 text-xs text-slate-500">{t.scan.seoulOnly}</p>}
           {line.cheapest_district && (
             <p className="mt-1 text-sm text-slate-600">
               {t.scan.cheapest(line.cheapest_district.name, formatKrw(line.cheapest_district.price_avg))}
