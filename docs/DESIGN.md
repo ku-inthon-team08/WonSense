@@ -69,10 +69,11 @@
 
 ### 3.1 페이지 프레임
 
-상단부와 본문이 같은 좌우 규칙을 써서 왼쪽 끝이 맞는다.
+상단부와 본문이 같은 좌우 규칙을 써서 왼쪽 끝이 맞는다. 클래스는 [`src/lib/ui.ts`](../frontend/src/lib/ui.ts)에서 가져다 쓴다.
 
 ```tsx
-const frame = "mx-auto w-full max-w-[1600px] px-4 md:px-10";
+import { card, frame } from "@/lib/ui";
+// frame = "mx-auto w-full max-w-[1600px] px-4 md:px-10"
 ```
 
 | 항목 | 모바일 | 데스크톱 (`md` 이상) |
@@ -98,12 +99,33 @@ const frame = "mx-auto w-full max-w-[1600px] px-4 md:px-10";
 | 태그라인 | "서울 물가 감각의 모든 것", 나눔고딕 Bold, `text-brand-pale`, 16px / 데스크톱 20px, 로고 밑선에 맞춤 |
 | 로고–검색창 간격 | 24px (`mb-6`) |
 
+### 3.3 상세 페이지 (`/search`, `/quiz`, `/heatmap`, `/reviews/...`)
+
+모든 상세 페이지는 **`PageShell`로 감싼다.** 직접 `<main>`이나 "← 홈" 링크를 만들지 않는다.
+
+```tsx
+<PageShell title={t.review.pageTitle} description={t.review.pageDesc} action={<글쓰기 버튼 />}>
+  {/* 페이지 내용 */}
+</PageShell>
+```
+
+구성 (위에서부터):
+
+1. **상단 바 (`SiteHeader`)** — 홈 상단부의 축소판. 금색 띠 + 작은 로고(높이 36px / 데스크톱 40px)만 있다. 검색창은 넣지 않는다. 로고를 누르면 홈으로 간다.
+2. **제목 블록** — `text-2xl font-bold` 제목(앞에 점 없음), 아래에 `text-sm text-slate-600` 설명. 오른쪽에 주요 버튼 1개(`action`)를 둘 수 있다.
+3. **본문** — 위아래 여백 32px / 데스크톱 40px.
+
+- **좌우 여백은 홈과 같다.** 상단 바와 본문 모두 `frame`(16px / 데스크톱 40px, 최대 1600px)을 써서 로고·제목·카드의 왼쪽 끝이 홈과 일치한다. 페이지별로 폭을 따로 좁히지 않는다.
+- 리뷰 상세·작성처럼 한 단계 아래 페이지는 `back`에 "← 목록으로" 링크를 넣는다.
+- 본문 내용은 [4. 카드](#4-카드) 규칙대로 흰 카드에 담는다.
+
 ---
 
 ## 4. 카드
 
 ```tsx
-const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
+import { card } from "@/lib/ui";
+// card = "flex flex-col rounded-2xl bg-white p-5 shadow-card"
 ```
 
 | 항목 | 값 |
@@ -125,7 +147,9 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 
 | 컴포넌트 | 위치 | 용도 |
 | --- | --- | --- |
-| `SectionHeader` | `src/components/SectionHeader.tsx` | 카드 제목. 금색 점 + 제목 + 금색 `→`, 통째로 링크 |
+| `PageShell` | `src/components/PageShell.tsx` | 상세 페이지 공통 틀. 상단 바 + 제목 블록 + 본문 ([3.3](#33-상세-페이지-search-quiz-heatmap-reviews)) |
+| `SiteHeader` | `src/components/SiteHeader.tsx` | 상세 페이지 상단 바. 로고(홈 링크)만. 보통은 `PageShell`이 넣어준다 |
+| `SectionHeader` | `src/components/SectionHeader.tsx` | 홈 카드 제목. 금색 점 + 제목 + 금색 `→`, 통째로 링크 |
 | `SearchBar` | `src/components/SearchBar.tsx` | 흰색 알약 모양 검색창 (`rounded-full`), 테두리·그림자·포커스 외곽선 없음 |
 | `SearchIcon` | `src/components/icons/SearchIcon.tsx` | flat 돋보기 SVG. 색은 `text-*` 클래스로 지정 (`currentColor`) |
 
@@ -147,8 +171,8 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 ## 6. 문구
 
 - 모든 화면 문구는 [`strings.ts`](../frontend/src/lib/strings.ts)의 `strings.ko`에 추가하고 `t.키이름`으로 쓴다.
-- 섹션 이름은 한국어로 통일: **물가 퀴즈 · 히트맵 · 리뷰 · 검색**
-- "← 홈" 링크는 `t.home`을 쓴다.
+- 섹션 이름은 한국어로 통일: **물가 퀴즈 · 서울 물가 히트맵 · 외국인 찐 리뷰 · 물가 검색**. 홈 카드 제목과 상세 페이지 제목은 같은 키를 쓴다 (`t.heatmapPageTitle`, `t.review.pageTitle` 등).
+- "← 홈" 링크는 만들지 않는다. 홈으로 가는 길은 상단 바의 로고 하나로 통일한다.
 
 ---
 
@@ -157,8 +181,7 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 정해지면 이 문서를 업데이트한다. 그 전까지는 현재 코드 상태를 따른다.
 
 1. 입력칸·리뷰 빈 상태의 회색 테두리(`slate-300`)를 따뜻한 회색/금색 계열로 바꿀지
-2. 상세 페이지(`/search`, `/quiz`, `/heatmap`, `/reviews`)에도 금색 상단부를 넣을지, 상세 페이지 최대 폭을 통일할지 (지금은 페이지마다 다름)
-3. 금색 배경 위 흰 글씨·베이지 글씨의 대비가 웹 접근성 권장치(4.5:1)보다 낮은 문제를 어떻게 할지
+2. 금색 배경 위 흰 글씨·베이지 글씨의 대비가 웹 접근성 권장치(4.5:1)보다 낮은 문제를 어떻게 할지
 
 ---
 
@@ -168,5 +191,6 @@ const card = "flex flex-col rounded-2xl bg-white p-5 shadow-card";
 - [ ] 보라·남색·분홍 계열 클래스가 없다
 - [ ] 카드는 `shadow-card`를 쓰고 `border`/회색 그림자가 없다
 - [ ] 화면 문구는 `strings.ts`를 거친다
-- [ ] 섹션 제목은 `SectionHeader`를 쓴다
+- [ ] 홈 카드 제목은 `SectionHeader`를 쓴다
+- [ ] 새 상세 페이지는 `PageShell`로 감쌌다 ("← 홈" 링크·직접 만든 `<main>` 없음)
 - [ ] 폰 폭(390px 안팎)에서 가로 스크롤 없이 보인다
