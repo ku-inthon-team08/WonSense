@@ -265,6 +265,8 @@ Review
 | GET | `/api/quiz/today` | 오늘의 퀴즈 문제 (정답 제외) |
 | POST | `/api/quiz/today/answer` | `{ guessed_price }` → 채점 결과 + 학습 카드 |
 | GET | `/api/heatmap?item_id=` | 자치구별 가격 데이터 (item_id 없으면 종합 지수) |
+| GET | `/api/heatmap/items` | 히트맵 품목 선택 목록 (서울 평균가 포함) |
+| GET | `/api/heatmap/districts/{region}` | 구 상세: 품목별 구 평균가와 서울 평균 대비 차이 |
 | GET | `/api/stores?q=` | 가게 자동완성 |
 | POST | `/api/stores` | 가게 등록 (이름+자치구가 같은 가게가 있으면 그 가게 반환) |
 | GET | `/api/reviews?q=&page=&size=` | 리뷰 목록 / 검색 (제목·본문·가게 이름) |

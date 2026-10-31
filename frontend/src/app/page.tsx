@@ -1,4 +1,5 @@
 import { SearchBar } from "@/components/SearchBar";
+import { HeatmapPreview } from "@/components/heatmap/HeatmapPreview";
 import { SectionHeader } from "@/components/SectionHeader";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { t } from "@/lib/strings";
@@ -27,11 +28,7 @@ export default function Home() {
           {/* ③ Heat map (public stats) */}
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <SectionHeader num={3} title={t.heatmapTitle} href="/heatmap" />
-            <div className="relative h-32 overflow-hidden rounded-xl bg-slate-50">
-              <div className="absolute left-4 top-6 h-20 w-20 rounded-full bg-indigo-300/60 blur-xl" />
-              <div className="absolute left-1/3 top-4 h-24 w-28 rounded-full bg-pink-300/70 blur-xl" />
-              <div className="absolute right-6 top-8 h-20 w-20 rounded-full bg-indigo-400/60 blur-xl" />
-            </div>
+            <HeatmapPreview />
             <p className="mt-2 text-xs text-slate-500">{t.heatmapSource}</p>
           </section>
 

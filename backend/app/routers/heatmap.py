@@ -60,6 +60,41 @@ def get_heatmap(
     }
 
 
+@router.get("/items")
+def get_heatmap_items(
+    reference_date: str | None = Query(None, description="YYYY-MM-DD, 없으면 최신 기준일"),
+    supabase: Client = Depends(get_supabase),
+) -> dict:
+    """품목 선택 목록: 기준일에 서울 평균가가 있는 품목들 (이름순)."""
+    ref = reference_date or _latest_reference_date(supabase)
+    if ref is None:
+        raise HTTPException(status_code=404, detail="가격 데이터가 아직 없습니다")
+
+    rows: list[dict] = []
+    start = 0
+    while True:
+        batch = (
+            supabase.table("price_stats")
+            .select("item_id, price_avg, items(name_ko, unit)")
+            .eq("region", SEOUL_REGION)
+            .eq("reference_date", ref)
+            .range(start, start + PAGE - 1)
+            .execute()
+            .data
+        )
+        rows.extend(batch)
+        if len(batch) < PAGE:
+            break
+        start += PAGE
+
+    items = [
+        {"item_id": r["item_id"], "name": r["items"]["name_ko"], "unit": r["items"]["unit"], "seoul_avg": r["price_avg"]}
+        for r in rows
+        if r.get("items")
+    ]
+    return {"reference_date": ref, "items": sorted(items, key=lambda i: i["name"])}
+
+
 @router.get("/districts/{region}")
 def get_district_detail(
     region: str,
