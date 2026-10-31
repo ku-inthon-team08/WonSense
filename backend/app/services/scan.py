@@ -19,6 +19,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.claude import is_claude_model
 from app.services.menus import MENU_SOURCE, search_menus
+from app.services.scan_match import match_line
 
 FAIR_BAND = 0.10  # 평균 ±10%는 적정가
 RIPOFF = 0.30  # 평균보다 30% 넘게 비싸면 바가지
@@ -144,36 +145,81 @@ def extract_lines(
     return out.lines
 
 
-JSON_INSTRUCTIONS = """Answer with one JSON object and nothing else (no prose, no code fences), matching this JSON schema:
-{schema}
-Every field must be present; use null where the rules above say so."""
+# Claude가 아닌 모델용 프롬프트: 읽기·번역만 시킨다. 품목 대조와 수량 비율은 코드(scan_match)가 한다.
+# 스키마 전체 대신 짧은 예시 한 줄을 준다 — 지시가 길고 복잡할수록 DeepSeek의 생각이 길어졌다.
+READ_PROMPT = """Read every priced item in a photo of a Seoul price tag, menu, sign, or receipt.
+Do not compare or match anything: just read each item and explain it to a foreign visitor.
+Keep your reasoning short. This is transcription, not a puzzle.
+
+Reply with one JSON object only, no code fences, like this:
+{"lines":[{"name":"김치찌개","name_en":"kimchi stew","price":9000,"quantity":null,"kind":"dish",\
+"description_en":"Spicy stew of aged kimchi, pork, and tofu.","spice_level":2,"contains":["pork","soy"],"vegetarian":false}]}
+
+- name: exactly as written. name_en: short English name, lowercase, at most 4 words.
+- price: integer won for the quantity shown. quantity: the size or count if written (e.g. "30구", "1kg"), else null.
+- kind: "dish" for restaurant food and drinks served there, "grocery" for things sold in shops or markets, \
+"other" for anything else (taxi, tickets, clothes).
+- description_en: one sentence, at most 15 words, no prices.
+- spice_level: 0-3 for food, null otherwise. contains: only from pork, beef, chicken, seafood, egg, dairy, wheat, \
+nuts, soy, alcohol. vegetarian: true, false, or null if unsure or not food.
+- Skip totals, tax, discounts, and payment lines. If there are no prices, reply {"lines":[]}."""
+
+# 생각이 길어져도 답이 잘리지 않게 넉넉히 둔다 (8,000에서는 생각만 하다 끝나는 일이 잦았다). 크면 스트리밍이 필요하다.
+READ_MAX_TOKENS = 16000
 
 
-def parse_scan_json(text: str) -> ScanOutput:
+class ReadLine(BaseModel):
+    name: str
+    name_en: str
+    price: int
+    quantity: str | None
+    kind: Literal["dish", "grocery", "other"]
+    description_en: str | None
+    spice_level: Literal[0, 1, 2, 3] | None
+    contains: list[Literal["pork", "beef", "chicken", "seafood", "egg", "dairy", "wheat", "nuts", "soy", "alcohol"]]
+    vegetarian: bool | None
+
+
+class ReadOutput(BaseModel):
+    lines: list[ReadLine]
+
+
+def parse_read_json(text: str) -> ReadOutput:
     """모델이 코드 블록이나 앞뒤 설명을 붙여도 첫 JSON 객체만 꺼내 스키마로 검증한다."""
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
     start, end = text.find("{"), text.rfind("}")
     if start < 0 or end < start:
         raise ValueError("모델 응답에 JSON이 없습니다")
     try:
-        return ScanOutput.model_validate_json(text[start : end + 1])
+        return ReadOutput.model_validate_json(text[start : end + 1])
     except ValidationError as e:
         raise ValueError(f"모델 응답이 스키마와 맞지 않습니다: {e.error_count()}개 오류") from e
+
+
+def to_scanned(read: ReadLine, items: list[dict]) -> ScannedLine:
+    item_id, reference_id, ratio = match_line(
+        read.name, read.name_en, read.quantity, read.kind, items, load_reference()["entries"]
+    )
+    return ScannedLine(
+        **read.model_dump(exclude={"kind"}), item_id=item_id, reference_id=reference_id, quantity_ratio=ratio
+    )
 
 
 def _extract_lines_json(
     client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict], model: str
 ) -> list[ScannedLine]:
-    """Claude가 아닌 모델(DeepSeek 등): 구조화 출력 대신 JSON 답변을 받아 직접 검증한다."""
-    schema = json.dumps(ScanOutput.model_json_schema(), ensure_ascii=False)
-    response = client.messages.create(
+    """Claude가 아닌 모델(DeepSeek 등): 읽기만 시키고 JSON 답변을 직접 검증한 뒤 코드로 기준가에 연결한다."""
+    with client.messages.stream(
         model=model,
-        max_tokens=8000,  # anthropic SDK 2.x에는 temperature 인자가 없다
-        system=f"{SYSTEM_PROMPT}\n\n{catalog_text(items)}\n\n{JSON_INSTRUCTIONS.format(schema=schema)}",
-        messages=_user_message(image_b64, media_type, "Read every priced item in this photo. Reply with JSON only."),
-    )
+        max_tokens=READ_MAX_TOKENS,
+        system=READ_PROMPT,
+        messages=_user_message(image_b64, media_type, "Read every priced item. JSON only."),
+    ) as stream:
+        response = stream.get_final_message()
     text = "".join(b.text for b in response.content if getattr(b, "type", None) == "text")
-    return parse_scan_json(text).lines
+    if not text and response.stop_reason == "max_tokens":
+        raise ValueError("모델이 답을 내기 전에 출력 한도를 다 썼습니다")
+    return [to_scanned(line, items) for line in parse_read_json(text).lines]
 
 
 def verdict(diff: float) -> Verdict:
