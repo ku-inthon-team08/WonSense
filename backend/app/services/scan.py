@@ -170,8 +170,7 @@ def _extract_lines_json(
     schema = json.dumps(ScanOutput.model_json_schema(), ensure_ascii=False)
     response = client.messages.create(
         model=model,
-        max_tokens=8000,
-        temperature=0,
+        max_tokens=8000,  # anthropic SDK 2.x에는 temperature 인자가 없다
         system=f"{SYSTEM_PROMPT}\n\n{catalog_text(items)}\n\n{JSON_INSTRUCTIONS.format(schema=schema)}",
         messages=_user_message(image_b64, media_type, "Read every priced item in this photo. Reply with JSON only."),
     )

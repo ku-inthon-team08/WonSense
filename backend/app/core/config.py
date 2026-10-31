@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Lablup Token Factory 같은 Anthropic 호환 게이트웨이를 쓰려면 셋 다 넣는다:
     #   LLM_BASE_URL=https://api.console.lablup.ai/anthropic
     #   LLM_API_KEY=<console.lablup.ai에서 발급한 키>
-    #   LLM_MODEL=deepseek-ai/DeepSeek-V4.1-Flash
+    #   LLM_MODEL=DeepSeek-V4.1-Flash-B300
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = "claude-haiku-5-5"
