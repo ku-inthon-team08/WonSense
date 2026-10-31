@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { SearchBar } from "@/components/SearchBar";
 import { formatKrw } from "@/lib/reviews";
-import { searchItems, type MenuResult, type SearchItem } from "@/lib/search";
+import { searchItems, type MenuResult, type ProductResult, type SearchItem } from "@/lib/search";
 import { t } from "@/lib/strings";
 import { useApi } from "@/lib/useApi";
 
@@ -43,9 +43,25 @@ export function SearchResults() {
           </section>
         )}
 
+        {data && data.products.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-1 font-semibold text-slate-800">{t.search.productsTitle}</h2>
+            <p className="mb-3 text-xs text-slate-500">{t.search.productsNote}</p>
+            <ul className="flex flex-col gap-3">
+              {data.products.map((product) => (
+                <li key={product.product_name}>
+                  <ProductCard product={product} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {data && data.results.length > 0 && (
           <>
-            {data.menus.length > 0 && <h2 className="mb-1 font-semibold text-slate-800">{t.search.groceriesTitle}</h2>}
+            {(data.menus.length > 0 || data.products.length > 0) && (
+              <h2 className="mb-1 font-semibold text-slate-800">{t.search.groceriesTitle}</h2>
+            )}
             <p className="mb-2 text-sm text-slate-500">{t.search.count(data.results.length)}</p>
             <ul className="flex flex-col gap-3">
               {data.results.map((item) => (
@@ -59,9 +75,9 @@ export function SearchResults() {
           </>
         )}
 
-        {data && data.results.length === 0 && data.menus.length > 0 && <ReviewLink q={q} />}
+        {data && data.results.length === 0 && (data.menus.length > 0 || data.products.length > 0) && <ReviewLink q={q} />}
 
-        {data && data.results.length === 0 && data.menus.length === 0 && (
+        {data && data.results.length === 0 && data.menus.length === 0 && data.products.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-600">
             <p>{t.search.noResults(q)}</p>
             {data.not_covered && <p className="mt-2 text-sm text-slate-500">{t.search.notCovered}</p>}
@@ -152,6 +168,37 @@ function MenuCard({ menu }: { menu: MenuResult }) {
         {t.search.source}: {menu.source}
         {menu.reference_date && ` · ${t.search.referenceDate} ${menu.reference_date}`} ·{" "}
         {t.search.stores(menu.store_count)}
+      </p>
+    </article>
+  );
+}
+
+function ProductCard({ product }: { product: ProductResult }) {
+  const usual =
+    product.price_low === product.price_high
+      ? formatKrw(product.price_median)
+      : `${formatKrw(product.price_low)} ~ ${formatKrw(product.price_high)}`;
+  return (
+    <article className="rounded-xl bg-white p-4 shadow-card">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="font-semibold text-slate-900">{product.product_name}</h3>
+        {product.category_en && <span className="text-xs text-slate-500">{product.category_en}</span>}
+      </div>
+      <p className="mt-2 text-slate-800">
+        {t.search.usually} <strong className="text-lg">{usual}</strong>
+      </p>
+      <p className="text-sm text-slate-600">
+        {t.search.median} <strong>{formatKrw(product.price_median)}</strong>
+        {product.convenience_price != null && (
+          <>
+            {" "}· {t.search.convenience} <strong>{formatKrw(product.convenience_price)}</strong>
+          </>
+        )}
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        {t.search.source}: {product.source} · {t.search.referenceDate} {product.reference_date} ·{" "}
+        {t.search.stores(product.store_count)}
+        {product.manufacturer && ` · ${product.manufacturer}`}
       </p>
     </article>
   );
