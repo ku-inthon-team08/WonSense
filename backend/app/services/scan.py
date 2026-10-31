@@ -3,8 +3,10 @@
 Claude 호출 한 번으로 (1) 사진의 품목·가격을 읽고 (2) 우리 품목 목록 중 같은 품목을 고르고
 (3) 사진의 수량이 기준 규격의 몇 배인지(quantity_ratio)를 정한다. 판정 계산은 코드에서 한다.
 
-기준가는 두 가지다. 장보기 품목은 서울시 생필품 가격(DB)을 먼저 쓰고, DB에 없는 외식·교통·의류 등은
-Numbeo 서울 생활물가(data/seoul_cost_of_living.json)로 추정한다.
+기준가 순서: (1) 장보기 품목은 서울시 생필품 가격(DB), (2) 식당 메뉴는 서울시 착한가격업소 메뉴 가격,
+(3) 나머지(카페·교통·의류 등)는 Numbeo 서울 생활물가(data/seoul_cost_of_living.json) 추정.
+
+메뉴판 통역: 같은 호출에서 메뉴마다 영어 설명·매운 정도·들어간 재료도 받는다.
 """
 import json
 from functools import lru_cache
@@ -13,6 +15,8 @@ from typing import Literal
 
 import anthropic
 from pydantic import BaseModel
+
+from app.services.menus import search_menus
 
 MODEL = "claude-haiku-5-5"
 
@@ -41,6 +45,16 @@ thing (e.g. a meal at an inexpensive restaurant for 김치찌개, a cappuccino, 
 "계란 30구" and catalog "계란 10개" gives 3; photo "콜라 500ml" and reference "0.33 Liter" gives 1.5. \
 Use 1 when the sizes are the same or the photo shows no size. null when nothing matches.
 
+Also explain each item to a foreign visitor who cannot read Korean:
+- description_en: one plain English sentence of at most 15 words saying what it is, \
+e.g. "Spicy stew of aged kimchi, pork, and tofu, served with rice." No prices.
+- spice_level: for food, 0 not spicy, 1 mild, 2 medium, 3 very spicy; null for anything that is not food.
+- contains: main ingredients a visitor may need to avoid, only from this list: \
+pork, beef, chicken, seafood, egg, dairy, wheat, nuts, soy, alcohol. Empty list if none or not food.
+- vegetarian: true only if the usual recipe has no meat, fish, or seafood (including broth and fish sauce); \
+false if it does; null if you are not sure or it is not food.
+Base these on the usual Korean recipe for that dish name.
+
 Skip lines with no readable price, totals, tax, discounts, and payment lines. \
 If the photo has no prices, return an empty list. Never invent items or prices."""
 
@@ -51,8 +65,13 @@ class ScannedLine(BaseModel):
     price: int
     quantity: str | None
     item_id: int | None
-    reference_id: int | None = None
+    # 기본값을 두지 않는다: 구조화 출력 스키마에서 선택 필드가 되면 모델이 빠뜨릴 수 있다
+    reference_id: int | None
     quantity_ratio: float | None
+    description_en: str | None
+    spice_level: Literal[0, 1, 2, 3] | None
+    contains: list[Literal["pork", "beef", "chicken", "seafood", "egg", "dairy", "wheat", "nuts", "soy", "alcohol"]]
+    vegetarian: bool | None
 
 
 class ScanOutput(BaseModel):
@@ -152,21 +171,67 @@ def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
     }
 
 
-def judge_line(line: ScannedLine, item: dict | None, districts: list[dict], district: str | None = None) -> dict:
+MENU_SOURCE = "서울시 가격안정 모범업소(착한가격업소) 상품목록"
+
+
+def judge_menu(line: ScannedLine, menu: dict, reference_date: str | None) -> dict:
+    """식당 메뉴를 착한가격업소 가격과 비교한다. 착한가격업소는 일부러 싸게 받는 가게라
+    중앙값이 아니라 '보통' 범위의 위쪽 끝(75번째 백분위)을 기준가로 쓴다. 한 그릇 기준이라 수량 비율은 쓰지 않는다."""
+    avg = menu["price_high"]
+    diff = line.price / avg - 1
+    return {
+        "matched": True,
+        "basis": "menu",
+        "item_id": None,
+        "catalog_name": menu["name_en"] or menu["name_ko"],
+        "catalog_unit": None,
+        "quantity_ratio": 1.0,
+        "seoul_avg": avg,
+        "seoul_range": [menu["price_low"], menu["price_high"]],
+        "seoul_diff_pct": round(diff * 100, 1),
+        "compare_avg": avg,
+        "compare_region": None,
+        "diff_pct": round(diff * 100, 1),
+        "verdict": verdict(diff),
+        "district_avg": None,
+        "district_prices": {},
+        "cheapest_district": None,
+        "store_count": menu["store_count"],
+        "source": MENU_SOURCE,
+        "reference_date": reference_date,
+    }
+
+
+def judge_line(
+    line: ScannedLine,
+    item: dict | None,
+    districts: list[dict],
+    district: str | None = None,
+    menus: dict | None = None,
+) -> dict:
     """한 줄 판정. districts: 그 품목의 구별 평균 [{region, region_name, price_avg}].
     district(지금 있는 구)를 주면 그 구 평균과 비교하고, 없거나 그 구 데이터가 없으면 서울 평균과 비교한다.
-    DB 품목이 없으면 Numbeo 기준가로 추정하고, 그것도 없거나 비율이 이상하면 matched=False."""
+    DB 품목이 없으면 착한가격업소 메뉴(menus: {rows, districts, reference_date}) → Numbeo 순으로 찾고,
+    그것도 없거나 비율이 이상하면 matched=False. 통역 필드(설명·매운 정도·재료)는 항상 붙인다."""
     out = {
         "name": line.name,
         "name_en": line.name_en,
         "price": line.price,
         "quantity": line.quantity,
+        "description_en": line.description_en,
+        "spice_level": line.spice_level,
+        "contains": line.contains,
+        "vegetarian": line.vegetarian,
         "matched": False,
     }
     ratio = line.quantity_ratio or 1.0
     if line.price <= 0 or not 0 < ratio <= 100:
         return out
     if item is None:
+        menu = search_menus(line.name, menus["rows"], menus["districts"]) if menus else []
+        if menu:
+            out.update(judge_menu(line, menu[0], menus["reference_date"]))
+            return out
         entry = load_reference()["entries"].get(line.reference_id) if line.reference_id else None
         if entry:
             out.update(judge_reference(line, entry, ratio))

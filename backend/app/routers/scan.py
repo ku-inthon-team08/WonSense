@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from supabase import Client
 
 from app.db.supabase import get_supabase
-from app.routers.items import get_items
+from app.routers.items import get_items, get_menus
 from app.core.claude import get_claude
 from app.services.heatmap import SEOUL_REGION
 from app.services.scan import extract_lines, judge_line, summarize
@@ -64,10 +64,11 @@ def _district_stats(supabase: Client, matched: list[dict]) -> dict[int, list[dic
 def scan(
     body: ScanRequest,
     items: list[dict] = Depends(get_items),
+    menus: dict = Depends(get_menus),
     supabase: Client = Depends(get_supabase),
     claude: anthropic.Anthropic = Depends(get_claude),
 ) -> dict:
-    """가격표·메뉴판·영수증 사진 한 장을 읽어 품목마다 서울 평균가와 비교한다.
+    """가격표·메뉴판·영수증 사진 한 장을 읽어 품목마다 평균가와 비교하고, 메뉴는 영어로 풀어 준다.
     verdict: cheap(10%↓ 저렴) / fair(±10%) / pricey(10~30% 비쌈) / ripoff(30%↑ 바가지)."""
     image = _decode(body.image)
     try:
@@ -81,6 +82,7 @@ def scan(
     districts = _district_stats(supabase, list({it["item_id"]: it for it in matched}.values()))
 
     results = [
-        judge_line(line, by_id.get(line.item_id), districts.get(line.item_id, []), body.district) for line in lines
+        judge_line(line, by_id.get(line.item_id), districts.get(line.item_id, []), body.district, menus)
+        for line in lines
     ]
     return {"lines": results, "summary": summarize(results)}
