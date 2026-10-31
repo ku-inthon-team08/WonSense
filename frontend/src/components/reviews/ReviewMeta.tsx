@@ -1,7 +1,26 @@
 "use client";
 
-import type { PriceFeeling, Store } from "@/lib/reviews";
+import type { PriceFeeling, Store, StoreCategory } from "@/lib/reviews";
 import { useDistrictName, useT } from "@/lib/i18n";
+
+// 리뷰에 사진이 없어서, 홈 리뷰 목록 왼쪽 썸네일 자리에 가게 종류 그림을 둔다.
+const categoryIcon: Record<StoreCategory, string> = {
+  restaurant: "🍽️",
+  cafe: "☕",
+  bar: "🍺",
+  convenience: "🏪",
+  market: "🛒",
+  shop: "🛍️",
+  other: "📍",
+};
+
+export function CategoryTile({ category }: { category: StoreCategory | undefined }) {
+  return (
+    <span aria-hidden className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-soft text-2xl">
+      {categoryIcon[category ?? "other"] ?? categoryIcon.other}
+    </span>
+  );
+}
 
 const feelingStyle: Record<PriceFeeling, string> = {
   cheap: "bg-emerald-50 text-emerald-700 ring-emerald-200",

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { FX_SYMBOL, fetchFx, formatFxKrw, type FxCurrency } from "@/lib/fx";
+import { ExchangeIcon } from "@/components/icons/SectionIcons";
 import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
@@ -12,17 +13,14 @@ export function FxRates() {
   const { data, error } = useApi("fx", (signal) => fetchFx(signal));
 
   return (
-    <section
-      aria-label={t.fx.title}
-      className="rounded-xl bg-gradient-to-br from-brand-pale/70 via-brand-pale/30 to-white p-4 ring-1 ring-brand/15"
-    >
+    <section aria-label={t.fx.title}>
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-800">
-          <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-brand text-xs text-white">
-            ₩
+        <h2 className="flex items-center gap-2.5 whitespace-nowrap text-lg font-semibold text-slate-900">
+          <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-brand-ink">
+            <ExchangeIcon className="h-4 w-4" />
           </span>
           {t.fx.title}
-        </h3>
+        </h2>
         {data && (
           <span className="whitespace-nowrap text-xs text-slate-500">
             {t.fx.asOf(data.date)} · {t.fx.vsPrev}
@@ -33,7 +31,7 @@ export function FxRates() {
       {error ? (
         <p className="mt-3 text-sm text-slate-500">{t.fx.error}</p>
       ) : (
-        <ul className="mt-3 grid grid-cols-2 gap-2.5">
+        <ul className="mt-4 grid grid-cols-2 gap-3">
           {data
             ? data.currencies.map((c) => (
                 <li key={c.code}>
@@ -41,7 +39,7 @@ export function FxRates() {
                 </li>
               ))
             : [0, 1, 2, 3].map((i) => (
-                <li key={i} aria-hidden className="h-[118px] animate-pulse rounded-lg bg-white/70" />
+                <li key={i} aria-hidden className="h-[118px] animate-pulse rounded-2xl bg-brand-pale" />
               ))}
         </ul>
       )}
@@ -62,11 +60,11 @@ function FxTile({ c }: { c: FxCurrency }) {
   const unit = t.fx.unit[c.code] ?? `${c.unit} ${c.code}`;
 
   return (
-    <div className="rounded-lg bg-white p-3 shadow-card transition-shadow hover:ring-1 hover:ring-brand/40">
+    <div className="rounded-2xl bg-white p-3.5 ring-1 ring-slate-100 transition-shadow hover:ring-brand/40">
       <div className="flex items-center gap-2">
         <span
           aria-hidden
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-pale text-sm font-bold text-brand"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand-ink"
         >
           {FX_SYMBOL[c.code]}
         </span>
@@ -156,7 +154,7 @@ function Sparkline({
       }}
     >
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full overflow-visible" aria-hidden>
-        <polygon points={area} className="fill-brand-pale/60" />
+        <polygon points={area} className="fill-brand-soft/60" />
         <polyline
           points={line}
           fill="none"
@@ -164,7 +162,7 @@ function Sparkline({
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
-          className="stroke-stone-300"
+          className="stroke-brand"
         />
         {active != null && (
           <line

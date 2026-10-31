@@ -19,7 +19,7 @@ export function LanguageToggle() {
       type="button"
       onClick={() => setLocale(locale === "ko" ? "en" : "ko")}
       aria-label={t.languageToggleLabel}
-      className="fixed right-4 top-4 z-50 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-brand shadow-card hover:ring-1 hover:ring-brand/50"
+      className="fixed right-4 top-4 z-50 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 shadow-card ring-1 ring-slate-200 hover:ring-brand/60"
     >
       {t.languageToggle}
     </button>

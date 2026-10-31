@@ -47,7 +47,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
         <StoreTag store={value.store} />
-        <button type="button" onClick={() => onChange(null)} className="text-sm text-brand">
+        <button type="button" onClick={() => onChange(null)} className="text-sm text-brand-ink">
           {t.review.storeChange}
         </button>
       </div>
@@ -66,7 +66,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
             aria-label={t.review.store}
             className={inputClass}
           />
-          <button type="button" onClick={() => onChange(null)} className="shrink-0 text-sm text-brand">
+          <button type="button" onClick={() => onChange(null)} className="shrink-0 text-sm text-brand-ink">
             {t.review.storeChange}
           </button>
         </div>
@@ -158,7 +158,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onChange({ kind: "new", store: { name, category: "restaurant", district: null } })}
-              className="w-full px-3 py-2 text-left text-sm font-medium text-brand hover:bg-brand-pale"
+              className="w-full px-3 py-2 text-left text-sm font-medium text-brand-ink hover:bg-brand-pale"
             >
               + {t.review.storeNew(name)}
             </button>

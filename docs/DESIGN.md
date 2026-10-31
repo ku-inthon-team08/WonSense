@@ -28,15 +28,19 @@
 
 | 토큰 | 값 | 쓰는 곳 |
 | --- | --- | --- |
-| `brand` | `#BE9C34` (금색) | 상단부 배경, 섹션 제목의 점·화살표, 주요 버튼, 링크, 아이콘 |
-| `brand-pale` | `#ECE4D2` (베이지) | 페이지 배경, 상단부 태그라인 글씨, 선택된 행·드롭다운 hover 하이라이트 |
+| `brand` | `#F2A81D` (호박색) | **채움 전용**: 주요 버튼, 검색 버튼, 퀴즈 태그, 그래프 선, 로고 색. 위 글씨는 `text-slate-900` (흰 글씨 금지: 대비 부족) |
+| `brand-ink` | `#9A5A00` (진한 호박색) | **흰 바탕 위 글씨·링크·아이콘** (`text-brand-ink`). 흰 바탕 대비 4.5:1 이상 |
+| `brand-pale` | `#FBF6EC` (크림색) | 페이지 배경, 상단부 배경, 카드 안쪽 박스, hover 하이라이트 |
+| `brand-soft` | `#FDECC8` (연한 호박색) | 칩·태그 바탕, 카드 제목 아이콘 원, 스캔 버튼 바탕 |
+
+- `text-brand`는 쓰지 않는다 (밝은 호박색이라 흰 바탕에서 안 읽힌다). 글씨는 항상 `text-brand-ink`.
 
 ### 1.2 보조 색 (Tailwind 기본 팔레트)
 
 | 클래스 | 쓰는 곳 |
 | --- | --- |
 | `bg-white` | 카드, 검색창 |
-| `bg-stone-100` | 카드 안쪽의 연한 회색 박스 (예: 퀴즈 문제 영역) |
+| `bg-brand-pale` | 카드 안쪽 박스 (예: 퀴즈 문제 영역, 히트맵 범례) |
 | `bg-stone-50` | 히트맵 미리보기 바탕 |
 | `text-slate-900` | 기본 글씨 (body에 이미 적용) |
 | `text-slate-500` / `text-slate-600` | 보조 글씨, 출처, 빈 상태 문구 |
@@ -54,7 +58,7 @@
 | 대상 | 글꼴 | 설정 위치 |
 | --- | --- | --- |
 | 기본 (전체) | 시스템 한글 폰트 (`system-ui`, Apple SD Gothic Neo, 맑은 고딕, Noto Sans KR 순) | `globals.css`의 `--font-sans` |
-| 상단부 태그라인 | 나눔고딕 Bold (700) | `page.tsx`에서 `next/font/google`으로 로드 |
+| 상단부 태그라인 | 나눔고딕 Bold (700) | `HomeHero.tsx`에서 `next/font/google`으로 로드 |
 
 | 용도 | 클래스 |
 | --- | --- |
@@ -86,18 +90,18 @@ import { card, frame } from "@/lib/ui";
 - **모바일 우선.** 기본 스타일은 폰 기준으로 쓰고, 넓은 화면은 `md:`로 덧붙인다.
 - 홈 화면은 데스크톱에서 카드 영역이 남은 화면 높이를 꽉 채운다 (노트북 크롬 1440×780에서 스크롤 없이 한 화면).
 
-### 3.2 상단부 (금색 띠)
+### 3.2 상단부 (`HomeHero`)
 
-홈 맨 위의 `bg-brand` 영역. 로고 + 태그라인 + 검색창이 들어간다.
+홈 맨 위. 크림색 바탕에 서울 스카이라인 장식, 왼쪽에 돋보기 든 호랑이, 오른쪽에 로고 + 태그라인 + 검색창 + 스캔 버튼.
 
 | 항목 | 값 |
 | --- | --- |
-| 배경 | `bg-brand`, 화면 전체 폭 |
-| 위 여백 | 20px (`pt-5`) / 데스크톱 28px (`md:pt-7`) |
-| 아래 여백 | 32px (`pb-8`) |
-| 로고 | `public/logo_hand_white.png` (흰색 손글씨 "비싼감?"), 높이 56px / 데스크톱 64px |
-| 태그라인 | "서울 물가 감각의 모든 것", 나눔고딕 Bold, `text-brand-pale`, 16px / 데스크톱 20px, 로고 밑선에 맞춤 |
-| 로고–검색창 간격 | 24px (`mb-6`) |
+| 배경 | `bg-brand-pale` + `SeoulSkyline` (해·빌딩·남산타워 실루엣, brand 색을 옅게) |
+| 마스코트 | `public/mascot/horangi-3d-search.webp` (돋보기 든 호랑이), 높이 144px / 넓은 화면 176px, **640px 미만에서는 숨김** |
+| 로고 | `Logo` 컴포넌트. `logo_hand_white.png`를 CSS mask로 따서 `brand` 색으로 칠한다. 높이 48px / 데스크톱 64px |
+| 태그라인 | 나눔고딕 Bold, `text-slate-600`, 16px / 데스크톱 20px, 로고 밑선에 맞춤 |
+| 검색창 | `SearchBar`: 흰 알약, 왼쪽 돋보기 아이콘, 오른쪽 둥근 `bg-brand` 검색 버튼 |
+| 스캔 버튼 | `bg-brand-soft` 알약, 카메라 아이콘 + 화살표 |
 
 ### 3.3 상세 페이지 (`/search`, `/quiz`, `/heatmap`, `/reviews/...`)
 
@@ -111,7 +115,7 @@ import { card, frame } from "@/lib/ui";
 
 구성 (위에서부터):
 
-1. **상단 바 (`SiteHeader`)** — 홈 상단부의 축소판. 금색 띠 + 작은 로고(높이 36px / 데스크톱 40px)만 있다. 검색창은 넣지 않는다. 로고를 누르면 홈으로 간다.
+1. **상단 바 (`SiteHeader`)** — 홈 상단부의 축소판. 크림색 띠 + 호박색 로고(높이 36px / 데스크톱 40px)만 있다. 검색창은 넣지 않는다. 로고를 누르면 홈으로 간다.
 2. **제목 블록** — `text-2xl font-bold` 제목(앞에 점 없음), 아래에 `text-sm text-slate-600` 설명. 오른쪽에 주요 버튼 1개(`action`)를 둘 수 있다.
 3. **본문** — 위아래 여백 32px / 데스크톱 40px.
 
@@ -125,18 +129,31 @@ import { card, frame } from "@/lib/ui";
 
 ```tsx
 import { card } from "@/lib/ui";
-// card = "flex flex-col rounded-2xl bg-white p-5 shadow-card"
+// card = "flex flex-col rounded-3xl bg-white p-5 shadow-card md:p-6"
 ```
 
 | 항목 | 값 |
 | --- | --- |
 | 배경 | 흰색 |
-| 모서리 | `rounded-2xl` (16px) |
-| 안쪽 여백 | 20px (`p-5`) |
+| 모서리 | `rounded-3xl` (24px) |
+| 안쪽 여백 | 20px (`p-5`) / 데스크톱 24px (`md:p-6`) |
 | 그림자 | `shadow-card` — 금색을 어둡게 한 갈색 계열의 은은한 그림자 |
 | 테두리 | 없음 |
 
-- 카드 안쪽에 영역을 나눌 때는 `rounded-xl bg-stone-100 p-4` 박스를 쓴다.
+- 카드 안쪽에 영역을 나눌 때는 `rounded-2xl bg-brand-pale p-4` 박스를 쓴다.
+- 카드 제목은 `SectionHeader`를 쓴다. `icon`(SectionIcons의 아이콘, `bg-brand-soft` 원 안에 들어감)과 `actionLabel`(오른쪽 "자세히 보기" 알약 링크)을 줄 수 있다.
+- 홈 카드는 2×2: 퀴즈 | 히트맵 / 환율 | 리뷰.
+
+### 4.1 마스코트 (호랑이)
+
+원본 포즈는 리포 루트 `mascot/`에 있다. 화면에 쓰는 것만 `frontend/public/mascot/`에 복사한다.
+
+| 위치 | 포즈 |
+| --- | --- |
+| 홈 상단부 | `horangi-3d-search.webp` (돋보기) |
+| 홈 퀴즈 카드 오른쪽 (넓은 화면만) | `horangi-3d-hold-lightbulb.webp` (전구) |
+
+- 장식이라 `alt=""`. 한 화면에 한두 마리만 둔다.
 - 회색(`shadow-sm`, `shadow-md` 등) 그림자나 `border`로 입체감을 주지 않는다.
 - **예외 — 떠 있는 요소**: 툴팁, 드롭다운 목록처럼 다른 요소 위에 겹쳐 뜨는 것은 `border border-slate-200 shadow-lg`를 쓴다.
 - 리뷰 카드처럼 눌러서 이동하는 카드의 hover는 `hover:ring-1 hover:ring-brand/50`.

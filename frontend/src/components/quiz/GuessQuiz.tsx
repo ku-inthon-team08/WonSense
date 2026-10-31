@@ -43,7 +43,7 @@ export function GuessQuiz({ quiz, onAnswer }: { quiz: GuessQuizData; onAnswer: (
           />
           <span className="ml-1 text-slate-500">{t.quizWon}</span>
         </label>
-        <button className="rounded-lg bg-brand px-5 py-2 font-medium text-white">OK</button>
+        <button className="rounded-lg bg-brand px-5 py-2 font-medium text-slate-900">OK</button>
       </div>
       {error && <p className="text-sm text-rose-600">{error}</p>}
     </form>

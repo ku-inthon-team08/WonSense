@@ -77,7 +77,7 @@ export function ScanView() {
             onClick={() => cameraInput.current?.click()}
             className="flex w-full flex-col items-center gap-3 rounded-xl bg-stone-100 px-4 py-12 text-slate-600 hover:ring-1 hover:ring-brand/50"
           >
-            <CameraIcon className="h-12 w-12 text-brand" />
+            <CameraIcon className="h-12 w-12 text-brand-ink" />
             <span className="text-base font-medium text-slate-800">{t.scan.takePhoto}</span>
             <span className="text-sm">{t.scan.pageDesc}</span>
           </button>
@@ -88,7 +88,7 @@ export function ScanView() {
             type="button"
             disabled={state.step === "reading"}
             onClick={() => cameraInput.current?.click()}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand/90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 font-medium text-slate-900 hover:bg-brand/90 disabled:opacity-50"
           >
             <CameraIcon className="h-5 w-5" />
             {photo ? t.scan.retake : t.scan.takePhoto}
@@ -97,7 +97,7 @@ export function ScanView() {
             type="button"
             disabled={state.step === "reading"}
             onClick={() => albumInput.current?.click()}
-            className="rounded-lg border border-brand px-4 py-2 font-medium text-brand disabled:opacity-50"
+            className="rounded-lg border border-brand px-4 py-2 font-medium text-brand-ink disabled:opacity-50"
           >
             {t.scan.pickPhoto}
           </button>

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { useT } from "@/lib/i18n";
 import { frame } from "@/lib/ui";
 
@@ -9,10 +9,10 @@ import { frame } from "@/lib/ui";
 export function SiteHeader() {
   const t = useT();
   return (
-    <header className="bg-brand">
+    <header className="border-b border-brand/15 bg-brand-pale">
       <div className={`${frame} py-3 md:py-4`}>
         <Link href="/" aria-label={t.goHome} className="inline-block">
-          <Image src="/logo_hand_white.png" alt="" width={886} height={320} preload className="h-9 w-auto md:h-10" />
+          <Logo label="" className="h-9 md:h-10" />
         </Link>
       </div>
     </header>
