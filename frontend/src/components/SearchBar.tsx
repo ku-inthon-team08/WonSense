@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 
 // F1 — plain GET form to /search (results page reads ?q=).
 // 흰 알약 모양: 왼쪽 돋보기 아이콘, 오른쪽 둥근 brand 검색 버튼.
-export function SearchBar({ defaultValue = "" }: { defaultValue?: string }) {
+export function SearchBar({ defaultValue = "", placeholder }: { defaultValue?: string; placeholder?: string }) {
   const t = useT();
   return (
     <form
@@ -17,7 +17,7 @@ export function SearchBar({ defaultValue = "" }: { defaultValue?: string }) {
         name="q"
         defaultValue={defaultValue}
         required
-        placeholder={t.searchPlaceholder}
+        placeholder={placeholder ?? t.searchPlaceholder}
         className="min-w-0 flex-1 bg-transparent py-2 text-base outline-none placeholder:text-slate-400"
         aria-label={t.searchLabel}
       />

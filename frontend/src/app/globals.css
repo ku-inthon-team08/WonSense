@@ -10,11 +10,33 @@
   /* 칩·태그·연한 강조 바탕 */
   --color-brand-soft: #fdecc8;
   --shadow-card: 0 1px 2px rgb(120 84 20 / 0.05), 0 8px 24px rgb(120 84 20 / 0.07);
-  --font-sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  /* Type scale one step larger than Tailwind's default (body 17px, like iOS). Line heights keep Tailwind's ratios. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.375rem;
+  --text-5xl: 3.125rem;
+  --text-6xl: 3.875rem;
+  --font-sans: var(--font-pretendard), -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
+/* Apple-like typography: slightly tight tracking, tighter still on headings, Korean wraps between words. */
 body {
   font-family: var(--font-sans);
+  font-size: var(--text-base);
+  letter-spacing: -0.011em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-rendering: optimizeLegibility;
+}
+h1,
+h2,
+h3 {
+  letter-spacing: -0.022em;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -29,6 +51,75 @@ body {
     to {
       opacity: 1;
       transform: scale(1);
+    }
+  }
+}
+
+/* ---------- Home hero: first full screen, scroll exit ---------- */
+
+@media (min-width: 48rem) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+}
+
+/* Scroll cue arrow bob. */
+.scroll-cue-arrow {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .hero-rise {
+    animation: hero-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--rise-delay, 0s) both;
+  }
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  .scroll-cue-arrow {
+    animation: cue-bob 1.6s ease-in-out infinite;
+  }
+  @keyframes cue-bob {
+    50% {
+      transform: translateY(4px);
+    }
+  }
+}
+
+/* Scrolling away from the hero: content drifts up and fades, the tiger stage leaves faster (parallax). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero {
+      view-timeline: --hero block;
+    }
+    .hero-content {
+      animation: hero-exit linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 70%;
+    }
+    .hero-stage {
+      animation: hero-stage-exit linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 45%;
+    }
+    @keyframes hero-exit {
+      to {
+        opacity: 0;
+        transform: translateY(-10vh) scale(0.97);
+      }
+    }
+    @keyframes hero-stage-exit {
+      to {
+        opacity: 0;
+        transform: translateY(-30vh);
+      }
     }
   }
 }

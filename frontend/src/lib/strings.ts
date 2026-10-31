@@ -9,7 +9,13 @@ const krw = (n: number) => n.toLocaleString("ko-KR");
 const ko = {
     appName: "WonSense",
     tagline: "서울 물가 감각의 모든 것",
+    heroTitle: "이 가격, 서울에선 비싼 걸까?",
+    heroIntro: "가격표를 찍거나 이름을 검색하면 서울 평균과 바로 비교해 드려요.",
+    heroOr: "또는 이걸로 찾아보기",
+    heroSearchPlaceholder: "궁금한 물건을 검색해 보세요",
+    scrollCue: "아래로 내려 보기",
     goHome: "비싼감? 홈으로",
+    back: "뒤로",
     searchPlaceholder: "음식이나 물건을 검색해 보세요 (예: bibimbap, 소주)",
     searchLabel: "검색",
     viewDetails: "자세히 보기",
@@ -236,6 +242,7 @@ const ko = {
     },
     fx: {
       title: "오늘의 환율",
+      pageDesc: "주요 통화가 원화로 얼마인지 최근 흐름과 함께 보여 드려요.",
       unit: { USD: "1달러", JPY: "100엔", CNY: "1위안", EUR: "1유로" } as Record<string, string>,
       vsPrev: "▲▼ 전일 대비",
       trend: (n: number) => `최근 ${n}일`,
@@ -264,7 +271,13 @@ const EN_SOURCES: Record<string, string> = {
 const en: Strings = {
   appName: "WonSense",
   tagline: "Your sense of Seoul prices",
+  heroTitle: "Is this price normal in Seoul?",
+  heroIntro: "Snap a price tag or search an item and we'll compare it with the Seoul average.",
+  heroOr: "Or explore",
+  heroSearchPlaceholder: "Search an item",
+  scrollCue: "Scroll for more",
   goHome: "WonSense home",
+  back: "Back",
   searchPlaceholder: "Search food or groceries (e.g. bibimbap, soju)",
   searchLabel: "Search",
   viewDetails: "View details",
@@ -498,6 +511,7 @@ const en: Strings = {
   },
   fx: {
     title: "Today's exchange rates",
+    pageDesc: "What major currencies are worth in won, with the recent trend.",
     unit: { USD: "US$1", JPY: "¥100", CNY: "CN¥1", EUR: "€1" },
     vsPrev: "▲▼ vs previous day",
     trend: (n: number) => `Last ${n} days`,
