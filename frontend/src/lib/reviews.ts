@@ -7,13 +7,6 @@ export type StoreCategory = (typeof STORE_CATEGORIES)[number];
 export const PRICE_FEELINGS = ["cheap", "fair", "expensive"] as const;
 export type PriceFeeling = (typeof PRICE_FEELINGS)[number];
 
-// Same 25 names as the `districts` table (stores.district stores the Korean name).
-export const DISTRICTS = [
-  "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구", "노원구",
-  "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구", "성북구", "송파구",
-  "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구",
-] as const;
-
 export type Store = {
   id: number;
   name: string;
@@ -68,15 +61,15 @@ export function passwordError(password: string): "short" | "long" | null {
 
 const json = (body: unknown) => JSON.stringify(body);
 
-export function listReviews(params: { q?: string; page?: number; size?: number }) {
+export function listReviews(params: { q?: string; page?: number; size?: number }, init?: RequestInit) {
   const qs = new URLSearchParams();
   if (params.q) qs.set("q", params.q);
   if (params.page) qs.set("page", String(params.page));
   if (params.size) qs.set("size", String(params.size));
-  return api<ReviewPage>(`/api/reviews?${qs}`);
+  return api<ReviewPage>(`/api/reviews?${qs}`, init);
 }
 
-export const getReview = (id: number) => api<Review>(`/api/reviews/${id}`);
+export const getReview = (id: number, init?: RequestInit) => api<Review>(`/api/reviews/${id}`, init);
 
 export const createReview = (fields: ReviewFields & StoreRef & { password: string }) =>
   api<Review>("/api/reviews", { method: "POST", body: json(fields) });
@@ -94,7 +87,3 @@ export function searchStores(q: string, limit = 8) {
   const qs = new URLSearchParams({ q, limit: String(limit) });
   return api<Store[]>(`/api/stores?${qs}`);
 }
-
-export const formatKrw = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-export const formatDate = (iso: string, locale = "ko-KR") =>
-  new Date(iso).toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });

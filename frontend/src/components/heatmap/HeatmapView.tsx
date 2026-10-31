@@ -4,7 +4,8 @@ import { useState } from "react";
 import { DistrictPanel } from "@/components/heatmap/DistrictPanel";
 import { HeatmapLegend } from "@/components/heatmap/HeatmapLegend";
 import { SeoulMap } from "@/components/heatmap/SeoulMap";
-import { binFor, formatPct, formatWon, getHeatmap, getHeatmapItems } from "@/lib/heatmap";
+import { formatKrw } from "@/lib/format";
+import { binFor, formatPct, getHeatmap, getHeatmapItems } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
 import { useDistrictName, useT } from "@/lib/i18n";
 
@@ -38,7 +39,7 @@ export function HeatmapView() {
           <option value="">{t.heatmapAllItems}</option>
           {items.data?.items.map((i) => (
             <option key={i.item_id} value={i.item_id}>
-              {i.name} ({formatWon(i.seoul_avg)})
+              {i.name} ({formatKrw(i.seoul_avg)})
             </option>
           ))}
         </select>
@@ -94,13 +95,8 @@ export function HeatmapView() {
                       className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${selected === d.region ? "bg-brand-pale" : ""}`}
                     >
                       <td className="py-1.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelected(d.region);
-                          }}
-                          className="flex items-center gap-2 text-left"
-                        >
+                        {/* Keyboard access: the click bubbles to the row */}
+                        <button className="flex items-center gap-2 text-left">
                           <span
                             className="h-3 w-3 shrink-0 rounded-sm"
                             style={{ background: binFor(d.diff_pct, mode).fill }}
@@ -110,7 +106,7 @@ export function HeatmapView() {
                         </button>
                       </td>
                       <td className="py-1.5 text-right font-semibold tabular-nums">
-                        {d.price_avg != null ? formatWon(d.price_avg) : d.index.toFixed(1)}
+                        {d.price_avg != null ? formatKrw(d.price_avg) : d.index.toFixed(1)}
                       </td>
                       <td className="w-16 py-1.5 text-right text-xs tabular-nums text-slate-500">
                         {formatPct(d.diff_pct)}

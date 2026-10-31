@@ -8,6 +8,13 @@
 | `20261031164254_seoul_market_prices.sql` | 자치구(`districts`) + 원본 가격 테이블 (원본 테이블은 아래에서 삭제) |
 | `20261101000000_heatmap_price_stats.sql` | 히트맵용 `items`·`price_stats` 확장 |
 | `20261101000100_drop_market_raw_tables.sql` | 쓰지 않는 원본 가격 테이블·뷰 삭제 |
+| `20261101000200_items_source_key_unique.sql` | `items.source_key` 유니크 제약 (수집 upsert용) |
+| `20261101000300` ~ `000500` | 퀴즈 품목 지정, `quiz_texts` 캐시 (이후 000700에서 삭제) |
+| `20261101000600_menu_prices.sql` | 식당 메뉴 가격 (착한가격업소) |
+| `20261101000700_quiz_manual.sql` | 114개 전 품목의 퀴즈 문제·팁을 미리 저장, `quiz_texts` 삭제 |
+| `20261101000800_product_prices.sql` | 마트·편의점 공산품 가격 요약 (참가격) |
+| `20261101000900_quiz_english.sql` | 퀴즈 품목 영어 이름·팁 |
+| `20261101001000_restaurant_prices.sql` | 일반 식당 메뉴 가격 (LLM 웹 검색) |
 
 ---
 
@@ -24,10 +31,13 @@ erDiagram
 
 | 기능 | 테이블 |
 | --- | --- |
-| F1 물가 검색 | `items`, `price_stats` |
-| F2 오늘의 퀴즈 | `items`, `daily_quizzes`, `quiz_answers` |
+| F1 물가 검색 | `items`, `price_stats`, `menu_prices`, `product_prices`, `restaurant_prices` |
+| F2 물가 퀴즈 | `items`, `price_stats`, `menu_prices` |
 | F3 히트맵 | `items`, `price_stats`, `districts` |
 | F4 리뷰 게시판 | `stores`, `reviews` |
+| 바가지 판독기 | `items`, `price_stats`, `menu_prices` |
+
+`daily_quizzes`, `quiz_answers`는 초기 설계의 흔적이다. 퀴즈가 랜덤 출제로 바뀌면서 코드에서 쓰지 않는다.
 
 ---
 
@@ -75,8 +85,7 @@ erDiagram
 
 ### 2.4 퀴즈 · 리뷰
 
-- **`daily_quizzes`**: 날짜(PK)별 문제, 품목, 정답가, LLM 해설
-- **`quiz_answers`**: 익명 답변 통계 (추정가, 판정 결과)
+- **`daily_quizzes`**, **`quiz_answers`**: 쓰지 않음 (1. 전체 구조 참고). 퀴즈 문제·팁은 `items`의 `quiz_*`, `tip_*` 컬럼에 있다
 - **`stores`**: 리뷰에 태그되는 가게 (이름, 카테고리, 자치구, 주소)
 - **`reviews`**: 닉네임, `password_hash`(bcrypt, **API 응답에 절대 포함 금지**), 제목·본문(trigram 검색 인덱스), 지불 가격, 가격 체감(cheap/fair/expensive), 평점, `updated_at` 자동 갱신
 

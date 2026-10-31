@@ -8,9 +8,13 @@ FastAPI + Supabase
 backend/
 ├── app/
 │   ├── main.py            # FastAPI 앱, CORS, 라우터 등록
-│   ├── core/config.py     # 환경변수 설정
-│   ├── db/supabase.py     # Supabase 클라이언트 (service role)
-│   └── routers/health.py  # 헬스체크
+│   ├── core/              # 설정(config), 메모리 캐시(cache), LLM 클라이언트(claude)
+│   ├── db/supabase.py     # Supabase 클라이언트 (service role), 전체 행 읽기(fetch_all)
+│   ├── routers/           # API 엔드포인트: items, heatmap, quiz, reviews, stores, scan, fx, health
+│   ├── services/          # 계산·매칭 로직. DB를 직접 읽지 않아서 테스트하기 쉽다
+│   └── data/              # Numbeo 서울 생활물가 (바가지 판독기의 마지막 기준가)
+├── scripts/               # 가격 수집 (서버가 아니라 로컬에서 실행)
+├── tests/
 ├── requirements.txt
 └── .env.example
 supabase/
@@ -54,7 +58,8 @@ supabase db push
 
 - CORS: `won-sense*.vercel.app`은 코드에서 자동 허용한다. 프론트 주소가 다르면 Render 환경변수에 `CORS_ORIGINS`를 추가한다.
 - 무료 플랜은 15분 동안 요청이 없으면 잠들고, 다음 첫 요청이 30초~1분 걸린다. 시연 전에 한 번 열어 깨워 둔다.
-- 가격 수집(`scripts/ingest_prices.py`)은 서버에서 돌지 않는다. 새 달 데이터는 로컬에서 실행한다.
+- 가격 수집(`scripts/`)은 서버에서 돌지 않는다. 새 달 데이터는 로컬에서 실행한다.
+- 가격 API는 메모리에 10분 캐시한다. 새 데이터를 넣으면 최대 10분 뒤에 화면에 반영된다 (재배포하면 바로 반영).
 
 ## 보안 메모
 

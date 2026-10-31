@@ -19,7 +19,7 @@ export default function Home() {
 
       {/* 2×2 카드: 퀴즈 | 지도 / 환율 | 리뷰 */}
       <div className={`${frame} grid flex-1 gap-6 py-6 md:grid-cols-2 md:py-8`}>
-        {/* ② 물가 퀴즈 (LLM) */}
+        {/* ② 물가 퀴즈 */}
         <section className={card}>
           <SectionHeader title={t.quizTitle} href="/quiz" icon={<QuizIcon className="h-4 w-4" />} />
           <QuizCard mascot />

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { binFor, formatPct, formatWon, type HeatmapDistrict, type ScaleMode } from "@/lib/heatmap";
-import { SEOUL_DISTRICTS, SEOUL_VIEWBOX } from "@/lib/seoulDistricts";
+import { useState, type SVGProps } from "react";
+import { DISTRICT_NAME_BY_CODE } from "@/lib/districts";
+import { formatKrw } from "@/lib/format";
+import { binFor, formatPct, type HeatmapDistrict, type ScaleMode } from "@/lib/heatmap";
+import { SEOUL_DISTRICTS, SEOUL_VIEWBOX, type DistrictShape } from "@/lib/seoulDistricts";
 import { useDistrictName, useLocale, useT } from "@/lib/i18n";
 
 type Props = {
@@ -22,7 +24,31 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
   const [tip, setTip] = useState<Tip | null>(null);
   const byRegion = new Map(districts.map((d) => [d.region, d]));
   const tipData = tip ? byRegion.get(tip.region) : undefined;
-  const tipShape = tip ? SEOUL_DISTRICTS.find((s) => s.code === tip.region) : undefined;
+
+  // Hover / keyboard behavior of a district that has data
+  const interactions = (shape: DistrictShape, isSelected: boolean): SVGProps<SVGPathElement> => ({
+    className: "cursor-pointer outline-none transition-[filter] hover:brightness-95 focus-visible:brightness-90",
+    tabIndex: 0,
+    role: "button",
+    "aria-pressed": isSelected,
+    onPointerMove: (e) => {
+      const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+      setTip({ region: shape.code, x: e.clientX - box.left, y: e.clientY - box.top });
+    },
+    onFocus: (e) => {
+      const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+      const scale = box.width / SEOUL_VIEWBOX.width;
+      setTip({ region: shape.code, x: shape.cx * scale, y: shape.cy * scale });
+    },
+    onBlur: () => setTip(null),
+    onClick: () => onSelect?.(shape.code),
+    onKeyDown: (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect?.(shape.code);
+      }
+    },
+  });
 
   return (
     <div className="relative" onPointerLeave={() => setTip(null)}>
@@ -36,7 +62,7 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
           const d = byRegion.get(shape.code);
           const bin = d ? binFor(d.diff_pct, mode) : null;
           const isSelected = selected === shape.code;
-          const interactive = !compact && d;
+          const name = dn(DISTRICT_NAME_BY_CODE[shape.code]);
           return (
             <path
               key={shape.code}
@@ -45,28 +71,8 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
               stroke={isSelected ? "#0b0b0b" : "#ffffff"}
               strokeWidth={isSelected ? 3 : 1.5}
               strokeLinejoin="round"
-              className={interactive ? "cursor-pointer outline-none transition-[filter] hover:brightness-95 focus-visible:brightness-90" : undefined}
-              tabIndex={interactive ? 0 : undefined}
-              role={interactive ? "button" : undefined}
-              aria-pressed={interactive ? isSelected : undefined}
-              aria-label={d ? `${dn(shape.name)} ${d.index} (${formatPct(d.diff_pct)})` : `${dn(shape.name)} ${t.heatmapNoData}`}
-              onPointerMove={interactive ? (e) => {
-                const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-                setTip({ region: shape.code, x: e.clientX - box.left, y: e.clientY - box.top });
-              } : undefined}
-              onFocus={interactive ? (e) => {
-                const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-                const scale = box.width / SEOUL_VIEWBOX.width;
-                setTip({ region: shape.code, x: shape.cx * scale, y: shape.cy * scale });
-              } : undefined}
-              onBlur={interactive ? () => setTip(null) : undefined}
-              onClick={interactive ? () => onSelect?.(shape.code) : undefined}
-              onKeyDown={interactive ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect?.(shape.code);
-                }
-              } : undefined}
+              aria-label={d ? `${name} ${d.index} (${formatPct(d.diff_pct)})` : `${name} ${t.heatmapNoData}`}
+              {...(!compact && d ? interactions(shape, isSelected) : {})}
             />
           );
         })}
@@ -101,13 +107,13 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
                 aria-hidden
               >
                 {/* English names are long; "Mapo" instead of "Mapo-gu" keeps labels from overlapping */}
-                {dn(shape.name).replace(/-gu$/, "")}
+                {dn(DISTRICT_NAME_BY_CODE[shape.code]).replace(/-gu$/, "")}
               </text>
             );
           })}
       </svg>
 
-      {tip && tipData && tipShape && (
+      {tip && tipData && (
         <div
           className="pointer-events-none absolute z-10 w-max max-w-56 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg"
           style={{ left: tip.x, top: tip.y - 12 }}
@@ -118,9 +124,9 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
             <span className="text-sm font-medium text-slate-600">({formatPct(tipData.diff_pct)})</span>
           </div>
           {tipData.price_avg != null && (
-            <div className="font-semibold tabular-nums">{formatWon(tipData.price_avg)}</div>
+            <div className="font-semibold tabular-nums">{formatKrw(tipData.price_avg)}</div>
           )}
-          <div className="text-slate-600">{dn(tipShape.name)}</div>
+          <div className="text-slate-600">{dn(DISTRICT_NAME_BY_CODE[tip.region])}</div>
           {tipData.price_avg == null && (
             <div className="text-xs text-slate-500">{t.heatmapItemCount(tipData.item_count)}</div>
           )}

@@ -1,26 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-import { listReviews, type Review } from "@/lib/reviews";
+import { listReviews } from "@/lib/reviews";
 import { useT } from "@/lib/i18n";
+import { useApi } from "@/lib/useApi";
 
 import { ReviewCard } from "./ReviewCard";
 
 // Home ④: the newest few reviews.
 export function LatestReviews({ count = 3 }: { count?: number }) {
   const t = useT();
-  const [reviews, setReviews] = useState<Review[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { data, error } = useApi(`latest-reviews:${count}`, (signal) => listReviews({ size: count }, { signal }));
+  const reviews = data?.items;
 
-  useEffect(() => {
-    listReviews({ size: count })
-      .then((p) => setReviews(p.items))
-      .catch(() => setFailed(true));
-  }, [count]);
-
-  if (failed) return <p className="py-4 text-center text-sm text-slate-500">{t.review.loadError}</p>;
+  if (error) return <p className="py-4 text-center text-sm text-slate-500">{t.review.loadError}</p>;
   if (!reviews) return <p className="py-4 text-center text-sm text-slate-500">{t.review.loading}</p>;
   if (reviews.length === 0)
     return (

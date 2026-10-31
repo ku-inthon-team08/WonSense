@@ -18,9 +18,7 @@ import anthropic
 from pydantic import BaseModel, ValidationError
 
 from app.core.claude import is_claude_model
-from app.services.menus import search_menus
-
-MODEL = "claude-haiku-5-5"  # 기본값. 실제 모델은 LLM_MODEL 설정 (app/core/config.py)
+from app.services.menus import MENU_SOURCE, search_menus
 
 FAIR_BAND = 0.10  # 평균 ±10%는 적정가
 RIPOFF = 0.30  # 평균보다 30% 넘게 비싸면 바가지
@@ -125,7 +123,7 @@ def _user_message(image_b64: str, media_type: str, text: str) -> list[dict]:
 
 
 def extract_lines(
-    client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict], model: str = MODEL
+    client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict], model: str
 ) -> list[ScannedLine]:
     if not is_claude_model(model):
         return _extract_lines_json(client, image_b64, media_type, items, model)
@@ -186,20 +184,14 @@ def verdict(diff: float) -> Verdict:
     return "pricey" if diff <= RIPOFF else "ripoff"
 
 
-def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
-    """DB에 없는 품목을 Numbeo 기준가로 추정한다. 구별 데이터는 없다."""
-    ref = load_reference()
-    avg = round(entry["price"] * ratio)
+def _judge_without_districts(line: ScannedLine, avg: int, **fields) -> dict:
+    """구별 가격이 없는 기준가(Numbeo·착한가격업소)로 낸 판정. 구 관련 값은 비워 둔다."""
     diff = line.price / avg - 1
     return {
         "matched": True,
-        "basis": "estimate",
         "item_id": None,
-        "catalog_name": entry["item"],
         "catalog_unit": None,
-        "quantity_ratio": ratio,
         "seoul_avg": avg,
-        "seoul_range": [round(entry[k] * ratio) if entry.get(k) else None for k in ("min", "max")],
         "seoul_diff_pct": round(diff * 100, 1),
         "compare_avg": avg,
         "compare_region": None,
@@ -208,40 +200,39 @@ def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
         "district_avg": None,
         "district_prices": {},
         "cheapest_district": None,
-        "source": ref["source"],
-        "reference_date": ref["reference_date"],
+        **fields,
     }
 
 
-MENU_SOURCE = "서울시 가격안정 모범업소(착한가격업소) 상품목록"
+def judge_reference(line: ScannedLine, entry: dict, ratio: float) -> dict:
+    """DB에 없는 품목을 Numbeo 기준가로 추정한다."""
+    ref = load_reference()
+    return _judge_without_districts(
+        line,
+        round(entry["price"] * ratio),
+        basis="estimate",
+        catalog_name=entry["item"],
+        quantity_ratio=ratio,
+        seoul_range=[round(entry[k] * ratio) if entry.get(k) else None for k in ("min", "max")],
+        source=ref["source"],
+        reference_date=ref["reference_date"],
+    )
 
 
 def judge_menu(line: ScannedLine, menu: dict, reference_date: str | None) -> dict:
     """식당 메뉴를 착한가격업소 가격과 비교한다. 착한가격업소는 일부러 싸게 받는 가게라
     중앙값이 아니라 '보통' 범위의 위쪽 끝(75번째 백분위)을 기준가로 쓴다. 한 그릇 기준이라 수량 비율은 쓰지 않는다."""
-    avg = menu["price_high"]
-    diff = line.price / avg - 1
-    return {
-        "matched": True,
-        "basis": "menu",
-        "item_id": None,
-        "catalog_name": menu["name_en"] or menu["name_ko"],
-        "catalog_unit": None,
-        "quantity_ratio": 1.0,
-        "seoul_avg": avg,
-        "seoul_range": [menu["price_low"], menu["price_high"]],
-        "seoul_diff_pct": round(diff * 100, 1),
-        "compare_avg": avg,
-        "compare_region": None,
-        "diff_pct": round(diff * 100, 1),
-        "verdict": verdict(diff),
-        "district_avg": None,
-        "district_prices": {},
-        "cheapest_district": None,
-        "store_count": menu["store_count"],
-        "source": MENU_SOURCE,
-        "reference_date": reference_date,
-    }
+    return _judge_without_districts(
+        line,
+        menu["price_high"],
+        basis="menu",
+        catalog_name=menu["name_en"] or menu["name_ko"],
+        quantity_ratio=1.0,
+        seoul_range=[menu["price_low"], menu["price_high"]],
+        store_count=menu["store_count"],
+        source=MENU_SOURCE,
+        reference_date=reference_date,
+    )
 
 
 def judge_line(

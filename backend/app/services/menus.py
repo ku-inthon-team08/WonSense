@@ -4,10 +4,11 @@
 그래서 대표 메뉴마다 한글 표기들을 두고, 메뉴 이름에 그 표기가 들어 있으면 같은 메뉴로 본다.
 사전에 없는 한글 검색어도 메뉴 이름에 들어 있으면 그대로 묶어서 보여준다 (예: 청국장).
 """
-import re
 from statistics import median, quantiles
 
-from app.services.search import normalize
+from app.services.search import HANGUL, compact, free_korean_term, normalize
+
+MENU_SOURCE = "서울시 가격안정 모범업소(착한가격업소) 상품목록"
 
 # 대표 메뉴(한글) → (영어 표시 이름, 메뉴 이름에서 찾을 한글 표기들, 영어 검색어들). 검색어는 소문자.
 MENU_DICT: dict[str, tuple[str, list[str], list[str]]] = {
@@ -47,25 +48,28 @@ MENU_DICT: dict[str, tuple[str, list[str], list[str]]] = {
     "염색": ("Hair dye", ["염색"], ["hair dye", "dye", "hair color"]),
 }
 
-_HANGUL = re.compile(r"[가-힣]")
+def round_to(value: float, step: int) -> int:
+    return int(round(value / step) * step)
 
 
-def _compact(text: str) -> str:
-    return re.sub(r"\s+", "", text)
+def contains_any(name: str, spellings: list[str]) -> bool:
+    """띄어쓰기를 무시하고 이름에 표기 중 하나가 들어 있는지."""
+    name = compact(name)
+    return any(s in name for s in spellings)
 
 
 def match_keywords(query: str) -> list[str]:
     """검색어에 해당하는 대표 메뉴들. 영어 이름·검색어와 일치하거나, 한글 표기가 검색어에 들어 있으면 매칭."""
     q = normalize(query)
-    qc = _compact(q)
+    qc = compact(q)
     if not qc:
         return []
     hits = []
     for key, (en, spellings, aliases) in MENU_DICT.items():
         en_keys = {normalize(en), *(normalize(a) for a in aliases)}
-        if q in en_keys or qc in {_compact(k) for k in en_keys}:
+        if q in en_keys or qc in {compact(k) for k in en_keys}:
             hits.append(key)
-        elif _HANGUL.search(qc) and (qc in {_compact(s) for s in spellings} or any(s in qc for s in spellings) or qc in key):
+        elif HANGUL.search(qc) and (qc in {compact(s) for s in spellings} or any(s in qc for s in spellings) or qc in key):
             hits.append(key)
     return hits
 
@@ -79,9 +83,9 @@ def price_stats(prices: list[int]) -> dict:
         q1, q3 = prices[0], prices[-1]
     return {
         "count": len(prices),
-        "price_low": int(round(q1 / 100) * 100),  # 100원 단위로 반올림
-        "price_median": int(round(median(prices) / 100) * 100),
-        "price_high": int(round(q3 / 100) * 100),
+        "price_low": round_to(q1, 100),
+        "price_median": round_to(median(prices), 100),
+        "price_high": round_to(q3, 100),
         "price_min": prices[0],
         "price_max": prices[-1],
     }
@@ -101,7 +105,7 @@ def _examples(rows: list[dict], district_names: dict[str, str], n: int = 3) -> l
                 "store_name": r["store_name"],
                 "menu_name": r["menu_name"],
                 "price": r["price"],
-                "district": district_names.get(gu or "", None),
+                "district": district_names.get(gu),
             }
         )
         if len(out) == n:
@@ -114,24 +118,24 @@ def search_menus(query: str, rows: list[dict], district_names: dict[str, str], m
     groups: list[tuple[str, str | None, list[dict]]] = []
     for key in match_keywords(query):
         en, spellings, _ = MENU_DICT[key]
-        matched = [r for r in rows if any(s in _compact(r["menu_name"]) for s in spellings)]
-        groups.append((key, en, matched))
+        groups.append((key, en, [r for r in rows if contains_any(r["menu_name"], spellings)]))
 
     # 사전에 없는 한글 검색어: 메뉴 이름에 그대로 들어 있으면 묶는다
-    qc = _compact(normalize(query))
-    if not groups and _HANGUL.search(qc) and len(qc) >= 2:
-        groups.append((qc, None, [r for r in rows if qc in _compact(r["menu_name"])]))
+    term = free_korean_term(query)
+    if not groups and term:
+        groups.append((term, None, [r for r in rows if contains_any(r["menu_name"], [term])]))
 
     out = []
     for key, en, matched in groups:
-        if len({r["store_id"] for r in matched}) < min_count:
+        store_count = len({r["store_id"] for r in matched})
+        if store_count < min_count:
             continue
         out.append(
             {
                 "name_ko": key,
                 "name_en": en,
                 **price_stats([r["price"] for r in matched]),
-                "store_count": len({r["store_id"] for r in matched}),
+                "store_count": store_count,
                 "examples": _examples(matched, district_names),
             }
         )

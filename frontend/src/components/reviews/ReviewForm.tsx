@@ -15,10 +15,9 @@ import {
   type StoreRef,
 } from "@/lib/reviews";
 import { useT } from "@/lib/i18n";
+import { inputClass } from "@/lib/ui";
 
 import { StorePicker, type StoreChoice } from "./StorePicker";
-
-const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (

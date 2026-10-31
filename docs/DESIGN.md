@@ -167,6 +167,7 @@ import { card } from "@/lib/ui";
 | `SectionHeader` | `src/components/SectionHeader.tsx` | 홈 카드 제목. 금색 점 + 제목 + 금색 `→`, 통째로 링크 |
 | `SearchBar` | `src/components/SearchBar.tsx` | 흰색 알약 모양 검색창 (`rounded-full`), 테두리·그림자·포커스 외곽선 없음 |
 | `SearchIcon` | `src/components/icons/SearchIcon.tsx` | flat 돋보기 SVG. 색은 `text-*` 클래스로 지정 (`currentColor`) |
+| `ErrorBox` | `src/components/ErrorBox.tsx` | 불러오기 실패 안내. 제목 + 서버 메시지, 필요하면 `children`에 다시 시도 버튼 |
 
 ### 아이콘
 
@@ -179,7 +180,7 @@ import { card } from "@/lib/ui";
 - 보조 버튼: `rounded-lg border border-brand px-4 py-2 font-medium text-brand`
 - 선택된 칩/토글: `border-brand bg-brand text-white`
 - 텍스트 링크: `text-brand`
-- 입력칸 포커스: `focus:border-brand`
+- 입력칸: `src/lib/ui.ts`의 `inputClass` (포커스하면 `focus:border-brand`)
 
 ---
 

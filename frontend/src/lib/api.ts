@@ -1,7 +1,7 @@
 import { currentStrings } from "@/lib/i18n";
 
 // All data goes through the FastAPI backend (see backend/README.md).
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   constructor(
@@ -42,7 +42,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
+      // Only with a body: on a GET this header would make the browser send a CORS preflight first.
+      headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
     });
   } catch {
     throw new ApiError(0, networkErrorMessage());

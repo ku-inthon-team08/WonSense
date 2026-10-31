@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from supabase import Client
 
-from app.db.supabase import get_supabase
-from app.routers.items import get_items, get_menus
 from app.core.claude import get_claude, get_llm_model
+from app.db.supabase import fetch_all, get_supabase
+from app.routers.items import get_items, get_menus
 from app.services.heatmap import SEOUL_REGION
 from app.services.scan import extract_lines, judge_line, summarize
 
@@ -43,14 +43,13 @@ def _district_stats(supabase: Client, matched: list[dict]) -> dict[int, list[dic
     """품목별 구 평균가 (각 품목의 최신 기준일 기준)."""
     if not matched:
         return {}
-    rows = (
-        supabase.table("price_stats")
+    rows = fetch_all(
+        lambda: supabase.table("price_stats")
         .select("item_id, region, region_name, price_avg, reference_date")
         .in_("item_id", [it["item_id"] for it in matched])
         .in_("reference_date", sorted({it["reference_date"] for it in matched}))
         .neq("region", SEOUL_REGION)
-        .execute()
-        .data
+        .order("id")
     )
     ref = {it["item_id"]: it["reference_date"] for it in matched}
     out: dict[int, list[dict]] = {}

@@ -6,7 +6,7 @@
 """
 import re
 
-from app.services.search import normalize
+from app.services.search import HANGUL, compact, free_korean_term, normalize
 
 # (영어 표시 이름, 영어 검색어, 한국어 검색어, 상품명에 맞으면 포함할 패턴, 맞으면 뺄 패턴)
 CONCEPTS: list[tuple[str, list[str], list[str], list[str], list[str]]] = [
@@ -104,15 +104,10 @@ CONCEPTS: list[tuple[str, list[str], list[str], list[str], list[str]]] = [
     ("Butane gas", ["butane", "gas canister", "camping gas"], ["부탄가스"], [r"부탄가스"], []),
 ]
 
-_HANGUL = re.compile(r"[가-힣]")
 _COMPILED = [
     (en, {normalize(t) for t in terms}, set(ko), [re.compile(p) for p in inc], [re.compile(p) for p in exc])
     for en, terms, ko, inc, exc in CONCEPTS
 ]
-
-
-def _compact(text: str) -> str:
-    return re.sub(r"\s+", "", text)
 
 
 def _matches(name: str, inc: list[re.Pattern], exc: list[re.Pattern]) -> bool:
@@ -122,14 +117,14 @@ def _matches(name: str, inc: list[re.Pattern], exc: list[re.Pattern]) -> bool:
 def match_concepts(query: str) -> list[int]:
     """검색어에 해당하는 종류(CONCEPTS의 번호)들."""
     q = normalize(query)
-    qc = _compact(q)
+    qc = compact(q)
     if not qc:
         return []
     hits = []
     for i, (en, terms, ko, _, _) in enumerate(_COMPILED):
-        if q in terms or qc in {_compact(t) for t in terms} or normalize(en) == q:
+        if q in terms or qc in {compact(t) for t in terms} or normalize(en) == q:
             hits.append(i)
-        elif _HANGUL.search(qc) and qc in ko:
+        elif HANGUL.search(qc) and qc in ko:
             hits.append(i)
     return hits
 
@@ -144,10 +139,10 @@ def search_products(query: str, products: list[dict], limit: int = 12) -> list[d
                 found[p["product_name"]] = {**p, "category_en": en}
 
     # 사전에 없는 한글 검색어(브랜드명 등): 상품명에 그대로 들어 있으면 보여준다 (예: 신라면, 햇반)
-    qc = _compact(normalize(query))
-    if not found and _HANGUL.search(qc) and len(qc) >= 2:
+    term = free_korean_term(query)
+    if not found and term:
         for p in products:
-            if qc in _compact(p["product_name"]):
+            if term in compact(p["product_name"]):
                 found[p["product_name"]] = {**p, "category_en": None}
 
     out = sorted(found.values(), key=lambda p: (-p["store_count"], p["product_name"]))
