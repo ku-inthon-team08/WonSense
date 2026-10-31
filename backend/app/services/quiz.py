@@ -1,67 +1,122 @@
+"""F2 물가 퀴즈. LLM 없이 DB 값과 고정 문구만으로 문제를 만든다.
+
+문제 유형 3가지 (로그인이 없으므로 정답을 같이 보내고 채점은 프론트에서 한다):
+- guess:        장보기 품목의 서울 평균 가격 맞히기 (items.quiz_question, price_stats)
+- higher_lower: 두 품목 중 어느 쪽이 더 비싼지 (price_stats)
+- menu:         착한가격업소 메뉴 가격이 '보통'인지 '비싼 편'인지 (menu_prices, F1 검색과 같은 기준)
+
+빌더 함수는 순수 함수라서 random.Random을 넘겨 테스트할 수 있다.
+"""
 import random
+from typing import Literal
 
-import anthropic
-from pydantic import BaseModel
+from app.services.menus import MENU_DICT, price_stats
 
-MODEL = "claude-opus-5-5"
+QuizType = Literal["guess", "higher_lower", "menu"]
+QUIZ_TYPES: tuple[QuizType, ...] = ("guess", "higher_lower", "menu")
 
-SYSTEM_PROMPT = """You write a price-guessing quiz for foreigners visiting or living in Seoul.
-
-Rules:
-- Write in natural, friendly English. Give the item's English name with the Korean name in parentheses.
-- The question asks how much the item usually costs in Seoul, in Korean won, and states the unit. \
-It must not contain or hint at the price.
-- The explanation is shown after the player answers. In 2-3 short sentences, say what makes this \
-price typical and share one practical tip for buying it in Seoul.
-- Use only the prices you are given. Never state any other price or figure."""
+HL_MIN_GAP = 0.15  # 더 비쌀까? 문제에서 두 가격이 이 비율보다 가까우면 고르지 않는다 (찍기 방지)
+MENU_MIN_STORES = 20  # 메뉴 퀴즈는 가게가 이만큼 이상 조사된 메뉴만 쓴다
+MENU_SOURCE = "서울시 착한가격업소 기준"
+FOOD_INDUSTRIES = {"한식", "중식", "경양식/일식", "기타외식업"}
+NON_FOOD_MENUS = {"커트", "파마", "염색"}
 
 
-class QuizText(BaseModel):
-    question: str
-    explanation: str
+def grade(guess: int, avg: int, tol_correct: float, tol_close: float) -> Literal["right", "near", "wrong"]:
+    error = abs(guess - avg) / avg
+    if error <= tol_correct:
+        return "right"
+    return "near" if error <= tol_close else "wrong"
 
 
-def pick_random(item_ids: list[int], exclude: int | None = None) -> int:
-    """랜덤 품목. 바로 직전 품목(exclude)은 가능하면 피한다."""
-    pool = [i for i in item_ids if i != exclude] or item_ids
-    return random.choice(pool)
+def _pick(pool: list, key, exclude: str | None, rng: random.Random):
+    """직전 문제(exclude)와 같은 대상은 가능하면 피한다."""
+    fresh = [p for p in pool if key(p) != exclude] or pool
+    return rng.choice(fresh)
 
 
-def is_correct(guess: int, answer: int, tolerance: float) -> bool:
-    return abs(guess - answer) / answer <= tolerance
+def build_guess(items: list[dict], exclude: str | None, rng: random.Random) -> dict:
+    item = _pick(items, lambda i: f"item:{i['item_id']}", exclude, rng)
+    return {
+        "type": "guess",
+        "key": f"item:{item['item_id']}",
+        "item_id": item["item_id"],
+        "quiz_name": item["quiz_name"],
+        "question": item["quiz_question"],
+        "answer_price": item["price_avg"],
+        "tolerance_correct": item["tolerance_correct"],
+        "tolerance_close": item["tolerance_close"],
+        "tip": item["tip"],
+        "source": item["source"],
+        "reference_date": item["reference_date"],
+    }
 
 
-def fallback_quiz_text(item: dict) -> QuizText:
-    """Claude 호출이 실패해도 퀴즈는 계속 나가도록 하는 고정 문구 (캐시하지 않음)."""
-    return QuizText(
-        question=f"Guess the average price in Seoul: {item['name_ko']} ({item['unit']})",
-        explanation="Prices are averages from Seoul traditional markets and supermarkets.",
-    )
+def build_higher_lower(items: list[dict], exclude: str | None, rng: random.Random) -> dict:
+    """기준 품목(가격 공개)과 대상 품목(가격 숨김). 가격 차이가 HL_MIN_GAP 이상인 쌍만 고른다."""
+    for _ in range(50):
+        base, target = rng.sample(items, 2)
+        gap = abs(target["price_avg"] - base["price_avg"]) / min(target["price_avg"], base["price_avg"])
+        if gap >= HL_MIN_GAP and f"item:{target['item_id']}" != exclude:
+            break
+    else:
+        raise ValueError("가격 차이가 충분한 품목 쌍을 찾지 못했습니다")
+
+    def public(i: dict) -> dict:
+        return {"item_id": i["item_id"], "name": i["quiz_name"], "price": i["price_avg"]}
+
+    return {
+        "type": "higher_lower",
+        "key": f"item:{target['item_id']}",
+        # '의'와 '보다'는 받침과 상관없이 붙어서 조사 처리가 필요 없다
+        "question": f"{target['quiz_name']}의 가격은 {base['quiz_name']}({base['price_avg']:,}원)보다 비쌀까요, 쌀까요?",
+        "base": public(base),
+        "target": public(target),
+        "answer": "higher" if target["price_avg"] > base["price_avg"] else "lower",
+        "source": target["source"],
+        "reference_date": target["reference_date"],
+    }
 
 
-def generate_quiz_text(client: anthropic.Anthropic, item: dict, stat: dict) -> QuizText:
-    """Claude로 문제와 해설을 만든다. 가격은 price_stats 값만 근거로 넘긴다."""
-    response = client.beta.messages.parse(
-        model=MODEL,
-        max_tokens=16000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        output_config={"effort": "medium"},
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"Item: {item['name_ko']}\n"
-                    f"Unit: {item['unit']}\n"
-                    f"Typical price: ₩{stat['price_avg']:,} (range ₩{stat['price_min']:,}~₩{stat['price_max']:,})\n"
-                    f"Survey: Seoul traditional markets and supermarkets, {stat['reference_date']}\n"
-                    f"Source: {stat['source']}"
-                ),
-            }
-        ],
-        output_format=QuizText,
-    )
-    if response.parsed_output is None:
-        raise ValueError(f"퀴즈 생성 실패 (stop_reason={response.stop_reason})")
-    return response.parsed_output
+def menu_stats(rows: list[dict]) -> list[dict]:
+    """F1 검색과 같은 메뉴 묶음(MENU_DICT)과 같은 '보통' 기준(가운데 50%)으로 메뉴별 가격 분포를 낸다."""
+    food = [r for r in rows if r.get("industry") in FOOD_INDUSTRIES and r.get("price", 0) > 0]
+    out = []
+    for key, (_en, spellings, _aliases) in MENU_DICT.items():
+        if key in NON_FOOD_MENUS:
+            continue
+        prices = [r["price"] for r in food if any(s in "".join(r["menu_name"].split()) for s in spellings)]
+        if len(prices) >= MENU_MIN_STORES:
+            out.append({"menu_name": key, **price_stats(prices)})
+    return out
+
+
+def _round_to(value: float, step: int) -> int:
+    return int(round(value / step) * step)
+
+
+def build_menu(stats: list[dict], exclude: str | None, rng: random.Random) -> dict:
+    """반반 확률로 '보통'(가운데 50% 범위 안) 또는 '비싼 편'(위쪽 경계보다 20~60% 비싼) 가격을 보여준다."""
+    m = _pick(stats, lambda s: f"menu:{s['menu_name']}", exclude, rng)
+    low, high = m["price_low"], m["price_high"]
+    if rng.random() < 0.5:
+        shown = _round_to(rng.uniform(low, high), 500)
+        if not low <= shown <= high:
+            shown = _round_to(rng.uniform(low, high), 100)
+        answer = "normal"
+    else:
+        shown = max(_round_to(high * rng.uniform(1.2, 1.6), 500), high + 500)
+        answer = "above"
+    return {
+        "type": "menu",
+        "key": f"menu:{m['menu_name']}",
+        "menu_name": m["menu_name"],
+        "question": f"착한가격업소에서 {m['menu_name']} {shown:,}원, 보통 가격일까요 비싼 편일까요?",
+        "shown_price": shown,
+        "median_price": m["price_median"],
+        "normal_low": low,
+        "normal_high": high,
+        "store_count": m["count"],
+        "answer": answer,
+        "source": MENU_SOURCE,
+    }

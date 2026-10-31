@@ -1,104 +1,105 @@
-from functools import lru_cache
+import random
+import time
 
-import anthropic
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.core.config import get_settings
 from app.db.supabase import get_supabase
+from app.routers.items import get_menus
 from app.services.heatmap import SEOUL_REGION
-from app.services.quiz import QuizText, fallback_quiz_text, generate_quiz_text, pick_random
+from app.services.quiz import QUIZ_TYPES, QuizType, build_guess, build_higher_lower, build_menu, menu_stats
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
+PAGE = 1000
+CACHE_TTL = 600  # 가격은 월 1회 갱신되므로 10분 캐시면 충분하다
+_cache: dict = {"at": 0.0, "items": None, "menus_at": 0.0, "menus": None}
 
-@lru_cache
-def get_claude() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
 
-
-def _latest_seoul_stats(supabase: Client, item_ids: list[int]) -> dict[int, dict]:
-    rows = (
-        supabase.table("price_stats")
-        .select("item_id, price_min, price_avg, price_max, source, reference_date")
-        .in_("item_id", item_ids)
-        .eq("region", SEOUL_REGION)
-        .order("reference_date", desc=True)
+def _load_quiz_items(supabase: Client) -> list[dict]:
+    """출제 대상 품목 + 최신 서울 평균가. 문제 문구와 팁은 items에 미리 넣어 둔 값을 쓴다."""
+    items = (
+        supabase.table("items")
+        .select("id, quiz_name, quiz_question, tip_ko, quiz_tolerance_correct, quiz_tolerance_close")
+        .eq("quiz_enabled", True)
+        .not_.is_("quiz_question", "null")
         .execute()
         .data
     )
-    latest: dict[int, dict] = {}
-    for r in rows:
-        latest.setdefault(r["item_id"], r)
-    return latest
+    stats: dict[int, dict] = {}
+    start = 0
+    while True:
+        batch = (
+            supabase.table("price_stats")
+            .select("item_id, price_avg, source, reference_date")
+            .eq("region", SEOUL_REGION)
+            .order("reference_date", desc=True)
+            .range(start, start + PAGE - 1)
+            .execute()
+            .data
+        )
+        for r in batch:
+            stats.setdefault(r["item_id"], r)
+        if len(batch) < PAGE:
+            break
+        start += PAGE
 
-
-def _quiz_text(supabase: Client, claude: anthropic.Anthropic, item: dict, stat: dict) -> QuizText:
-    """캐시에 있으면 그대로 쓰고, 없으면 Claude로 만들어 저장한다. 실패하면 고정 문구."""
-    cached = (
-        supabase.table("quiz_texts")
-        .select("question, explanation")
-        .eq("item_id", item["id"])
-        .eq("reference_date", stat["reference_date"])
-        .execute()
-        .data
-    )
-    if cached:
-        return QuizText(**cached[0])
-
-    try:
-        text = generate_quiz_text(claude, item, stat)
-    except (anthropic.APIError, ValueError):
-        return fallback_quiz_text(item)
-
-    supabase.table("quiz_texts").upsert(
+    return [
         {
-            "item_id": item["id"],
-            "reference_date": stat["reference_date"],
-            "question": text.question,
-            "explanation": text.explanation,
-        },
-        on_conflict="item_id,reference_date",
-        ignore_duplicates=True,
-    ).execute()
-    return text
+            "item_id": i["id"],
+            "quiz_name": i["quiz_name"],
+            "quiz_question": i["quiz_question"],
+            "tip": i["tip_ko"] or "",
+            "tolerance_correct": float(i["quiz_tolerance_correct"]),
+            "tolerance_close": float(i["quiz_tolerance_close"]),
+            "price_avg": stats[i["id"]]["price_avg"],
+            "source": stats[i["id"]]["source"],
+            "reference_date": stats[i["id"]]["reference_date"],
+        }
+        for i in items
+        if i["id"] in stats and stats[i["id"]]["price_avg"] > 0
+    ]
+
+
+def get_quiz_items(supabase: Client = Depends(get_supabase)) -> list[dict]:
+    now = time.monotonic()
+    if _cache["items"] is None or now - _cache["at"] > CACHE_TTL:
+        _cache["items"] = _load_quiz_items(supabase)
+        _cache["at"] = now
+    return _cache["items"]
+
+
+def get_menu_stats(menus: dict = Depends(get_menus)) -> list[dict]:
+    now = time.monotonic()
+    if _cache["menus"] is None or now - _cache["menus_at"] > CACHE_TTL:
+        _cache["menus"] = menu_stats(menus["rows"])
+        _cache["menus_at"] = now
+    return _cache["menus"]
 
 
 @router.get("/random")
 def get_random_quiz(
-    exclude: int | None = None,
-    supabase: Client = Depends(get_supabase),
-    claude: anthropic.Anthropic = Depends(get_claude),
+    type: QuizType | None = None,
+    exclude: str | None = None,
+    items: list[dict] = Depends(get_quiz_items),
+    menus: list[dict] = Depends(get_menu_stats),
 ) -> dict:
-    """랜덤 퀴즈 한 문제. 로그인이 없으므로 정답과 해설을 함께 보내고 채점은 프론트에서 한다.
-    exclude: 직전 품목 id (같은 문제가 연속으로 나오지 않게)."""
-    items = (
-        supabase.table("items")
-        .select("id, name_ko, unit, quiz_tolerance_correct")
-        .eq("quiz_enabled", True)
-        .execute()
-        .data
-    )
-    stats = _latest_seoul_stats(supabase, [i["id"] for i in items]) if items else {}
-    candidates = [i for i in items if i["id"] in stats]
-    if not candidates:
-        raise HTTPException(status_code=404, detail="퀴즈 대상 품목이 없습니다")
+    """랜덤 퀴즈 한 문제. type을 안 주면 세 유형 중 하나를 고른다.
+    exclude: 직전 문제의 key (예: "item:9", "menu:김치찌개") — 같은 대상이 연속으로 나오지 않게."""
+    rng = random.Random()
+    needs = {"guess": len(items) >= 1, "higher_lower": len(items) >= 2, "menu": len(menus) >= 1}
+    available = [t for t in QUIZ_TYPES if needs[t]]
+    if type is not None and type not in available:
+        raise HTTPException(status_code=404, detail="이 유형의 퀴즈 데이터가 없습니다")
+    if not available:
+        raise HTTPException(status_code=404, detail="퀴즈 대상 데이터가 없습니다")
 
-    item_id = pick_random([i["id"] for i in candidates], exclude)
-    item = next(i for i in candidates if i["id"] == item_id)
-    stat = stats[item_id]
-    text = _quiz_text(supabase, claude, item, stat)
-
-    return {
-        "item_id": item_id,
-        "name": item["name_ko"],
-        "unit": item["unit"],
-        "question": text.question,
-        "explanation": text.explanation,
-        "answer_price": stat["price_avg"],
-        "price_min": stat["price_min"],
-        "price_max": stat["price_max"],
-        "tolerance": float(item["quiz_tolerance_correct"]),
-        "source": stat["source"],
-        "reference_date": stat["reference_date"],
-    }
+    chosen = type or rng.choice(available)
+    if chosen == "guess":
+        return build_guess(items, exclude, rng)
+    if chosen == "higher_lower":
+        try:
+            return build_higher_lower(items, exclude, rng)
+        except ValueError:
+            return build_guess(items, exclude, rng)
+    return build_menu(menus, exclude, rng)

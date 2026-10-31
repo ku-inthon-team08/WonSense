@@ -16,12 +16,58 @@ export type SearchItem = {
   reference_date: string;
 };
 
+// Restaurant menu / service prices from Seoul's "good price" stores (cheaper than typical)
+export type MenuExample = { store_name: string; menu_name: string; price: number; district: string | null };
+export type MenuResult = {
+  name_ko: string;
+  name_en: string | null;
+  count: number; // menu rows matched
+  store_count: number;
+  price_low: number; // 25th percentile — "usually" range
+  price_median: number;
+  price_high: number; // 75th percentile
+  price_min: number;
+  price_max: number;
+  examples: MenuExample[];
+  source: string;
+  reference_date: string | null;
+};
+
+// Packaged goods at marts / convenience stores (KCA 참가격, nationwide, regular prices only)
+export type ProductResult = {
+  product_name: string; // Korean brand + size, e.g. 참이슬 후레쉬(360ml)
+  category_en: string | null; // e.g. "Soju"; null when matched by Korean name only
+  manufacturer: string | null;
+  price_low: number; // 25th percentile across stores
+  price_median: number;
+  price_high: number; // 75th percentile
+  price_min: number;
+  price_max: number;
+  store_count: number;
+  convenience_price: number | null; // median at CU / GS25 / 7-Eleven / emart24
+  reference_date: string;
+  source: string;
+};
+
 export type SearchResponse = {
   query: string;
   results: SearchItem[];
+  menus: MenuResult[];
+  products: ProductResult[];
   suggestions: string[]; // typo fixes when there are no results
   not_covered: boolean; // restaurant menu / transport query: no data yet
 };
 
-export const searchItems = (q: string, init?: RequestInit) =>
-  api<SearchResponse>(`/api/items/search?q=${encodeURIComponent(q)}`, init);
+// Vercel(프론트)와 Render(백엔드)는 따로 배포되므로, 프론트가 먼저 바뀌면 백엔드 응답에 menus가 아직 없을 수 있다.
+// 그때도 화면이 깨지지 않도록 빠진 배열은 빈 배열로 채운다.
+export const searchItems = async (q: string, init?: RequestInit): Promise<SearchResponse> => {
+  const res = await api<Partial<SearchResponse>>(`/api/items/search?q=${encodeURIComponent(q)}`, init);
+  return {
+    query: res.query ?? q,
+    results: res.results ?? [],
+    menus: res.menus ?? [],
+    products: res.products ?? [],
+    suggestions: res.suggestions ?? [],
+    not_covered: res.not_covered ?? false,
+  };
+};

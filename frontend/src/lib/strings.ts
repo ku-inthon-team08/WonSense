@@ -8,13 +8,17 @@ export const strings = {
     quizTitle: "물가 퀴즈",
     comingSoon: "준비 중",
     quizLoading: "문제를 불러오는 중…",
-    quizRight: "정답! 🎯",
-    quizWrong: "오답 ❌",
-    quizYourGuess: "내 답",
-    quizAnswer: "평균 가격",
     quizSource: "출처",
     quizNext: "다음 문제",
     quizNeedNumber: "숫자를 입력하세요",
+    quizTypes: { guess: "가격 맞히기", higher_lower: "더 비쌀까?", menu: "이 가격 괜찮을까?" },
+    quizVerdict: { right: "정답!", near: "아깝다!", wrong: "땡!" },
+    quizHigher: "더 비싸요 ⬆️",
+    quizLower: "더 싸요 ⬇️",
+    quizNormal: "보통이에요",
+    quizAbove: "비싼 편이에요",
+    quizGuessPlaceholder: "예: 3,000",
+    quizWon: "원",
     quizError: "퀴즈를 불러오지 못했어요. 백엔드가 켜져 있는지 확인하세요.",
     heatmapSource: "출처: 서울 열린데이터광장 생필품 가격",
     reviewEmpty: "아직 리뷰가 없어요",
@@ -43,8 +47,17 @@ export const strings = {
     heatmapReferenceDate: "기준일",
     search: {
       pageTitle: "물가 검색",
-      pageDesc: "서울 전통시장 장보기 가격을 영어·한국어로 찾아보세요. 외식 메뉴 가격은 아직 없어요.",
-      empty: "찾고 싶은 품목을 입력해 보세요 (예: soju, eggs, 라면)",
+      pageDesc: "서울 식당 메뉴와 장보기 가격을 영어·한국어로 찾아보세요.",
+      empty: "찾고 싶은 메뉴나 품목을 입력해 보세요 (예: bibimbap, soju, 김치찌개)",
+      menusTitle: "식당 메뉴",
+      menusNote: "서울시 착한가격업소 기준이라 일반 식당보다 조금 저렴하게 나올 수 있어요. '보통'은 가게별 가격의 가운데 50%예요.",
+      groceriesTitle: "장보기 품목",
+      productsTitle: "마트·편의점 상품",
+      productsNote: "한국소비자원이 전국 마트·편의점에서 조사한 정상가예요 (세일·1+1 제외). '보통'은 판매점별 가격의 가운데 50%예요.",
+      convenience: "편의점",
+      median: "중간값",
+      menuRange: (min: string, max: string) => `전체 ${min} ~ ${max}`,
+      stores: (n: number) => `${n}곳 조사`,
       error: "검색 결과를 불러오지 못했어요. 백엔드가 켜져 있는지 확인해 주세요.",
       count: (n: number) => `${n}개 품목`,
       usually: "보통",
@@ -54,9 +67,61 @@ export const strings = {
       districts: (n: number) => `${n}개 자치구 조사`,
       rangeNote: "가격 범위는 자치구별 평균가 중 가장 싼 구 ~ 가장 비싼 구예요. 할인·행사가는 빼고 계산했어요.",
       noResults: (q: string) => `"${q}"에 대한 가격 데이터가 없어요`,
-      notCovered: "식당 메뉴·교통비 같은 외식/서비스 가격은 아직 준비 중이에요. 지금은 시장 장보기 품목만 있어요.",
+      notCovered: "교통비 같은 서비스 가격이나 일부 메뉴는 아직 데이터가 없어요.",
       didYouMean: "혹시 이걸 찾으셨나요?",
       reviews: (q: string) => `"${q}" 관련 리뷰 보기`,
+    },
+    scan: {
+      entry: "가격표 찍고 바가지 확인하기",
+      pageTitle: "바가지 판독기",
+      pageDesc: "가격표·메뉴판·영수증을 찍으면 영어로 풀어 주고 서울 평균가와 비교해 드려요.",
+      takePhoto: "사진 찍기",
+      pickPhoto: "앨범에서 고르기",
+      district: "지금 있는 자치구",
+      districtNone: "선택 안 함",
+      districtHint: "구를 고르면 그 동네 평균으로 판정해요. 찍은 뒤에 바꿔도 바로 다시 계산돼요.",
+      reading: "가격표를 읽는 중…",
+      retake: "다른 사진",
+      error: "사진을 판독하지 못했어요.",
+      noPrices: "사진에서 가격을 찾지 못했어요. 가격이 잘 보이게 다시 찍어 주세요.",
+      verdict: { cheap: "저렴해요", fair: "적정가예요", pricey: "조금 비싸요", ripoff: "바가지 주의!" },
+      // ref: what the price was compared with, e.g. "서울 평균", "마포구 평균", "착한가격업소 보통 가격"
+      diff: (pct: number, ref: string) =>
+        Math.abs(pct) < 0.5 ? `${ref} 수준` : pct > 0 ? `${ref}보다 ${pct}% 비쌈` : `${ref}보다 ${-pct}% 저렴`,
+      seoul: "서울",
+      summary: (n: number) => `비교한 ${n}개 품목 합계`,
+      seoulOnly: "이 품목은 구별 가격이 없어서 서울 평균으로 판정했어요",
+      paid: "이 가격",
+      seoulAvg: "서울 평균",
+      menuRef: "착한가격업소 보통 가격",
+      mixedRef: "기준 가격",
+      range: "보통 범위",
+      districtAvg: (name: string) => `${name} 평균`,
+      cheapest: (name: string, price: string) => `가장 싼 곳은 ${name} (평균 ${price})`,
+      comparedTo: "비교 기준",
+      basisOfficial: "서울시 공식 가격",
+      basisEstimate: "추정치",
+      basisMenu: (n: number) => `서울시 착한가격업소 ${n}곳의 보통 가격 상단 기준`,
+      spice: ["안 매워요", "약간 매워요", "보통 매워요", "아주 매워요"],
+      vegetarian: "채식 가능",
+      notVegetarian: "고기·해산물 포함",
+      contains: "포함",
+      ingredient: {
+        pork: "돼지고기",
+        beef: "소고기",
+        chicken: "닭고기",
+        seafood: "해산물",
+        egg: "달걀",
+        dairy: "유제품",
+        wheat: "밀",
+        nuts: "견과류",
+        soy: "콩",
+        alcohol: "술",
+      },
+      aiNote: "메뉴 설명과 재료는 AI가 일반적인 조리법으로 추정한 거예요. 알레르기가 있다면 꼭 가게에 확인하세요.",
+      unmatched: "비교할 가격 데이터가 아직 없어요",
+      source: "출처",
+      note: "사진 판독은 AI가 하고, 비교 가격은 서울 열린데이터광장 생필품 가격(장보기), 서울시 착한가격업소 메뉴 가격(식당), Numbeo 서울 생활물가(카페·교통 등 추정)를 써요.",
     },
     review: {
       pageTitle: "외국인 찐 리뷰",
@@ -132,3 +197,25 @@ export const strings = {
 
 export type Locale = keyof typeof strings;
 export const t = strings.ko;
+
+export type QuizResult = "right" | "near" | "wrong";
+export type QuizDirection = "high" | "low";
+
+const won = (n: number) => n.toLocaleString("ko-KR");
+
+// 퀴즈 결과 한 줄 피드백. 가격 뒤에는 항상 '원이에요'라서 받침 걱정이 없다.
+export const quizFeedback = {
+  guess(result: QuizResult, direction: QuizDirection, avg: number): string {
+    const way = direction === "high" ? "비싸게" : "싸게";
+    if (result === "right") return `평균 ${won(avg)}원이에요.`;
+    if (result === "near") return `조금 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
+    return `너무 ${way} 봤어요. 평균 ${won(avg)}원이에요.`;
+  },
+  higherLower(target: string, price: number): string {
+    return `${target}의 평균은 ${won(price)}원이에요.`;
+  },
+  menu(answer: "normal" | "above", low: number, high: number): string {
+    const verdict = answer === "normal" ? "보통 가격이에요" : "비싼 편이에요";
+    return `${verdict}. 착한가격업소는 보통 ${won(low)}~${won(high)}원이에요.`;
+  },
+};
