@@ -1,7 +1,9 @@
 import base64
+import inspect
 from types import SimpleNamespace
 
 import pytest
+from anthropic.resources.messages import Messages
 from fastapi.testclient import TestClient
 
 from app.db.supabase import get_supabase
@@ -182,6 +184,7 @@ class FakeClaude:
         self.output = output
 
     def _parse(self, **kw):
+        inspect.signature(Messages.parse).bind(None, **kw)
         self.calls.append(kw)
         return SimpleNamespace(parsed_output=self.output, stop_reason="end_turn")
 
@@ -224,6 +227,8 @@ class FakeGatewayLLM:
         self.messages = SimpleNamespace(create=self._create)
 
     def _create(self, **kw):
+        # 진짜 SDK에 없는 인자를 보내면 실제 서버에서처럼 TypeError가 나게 한다
+        inspect.signature(Messages.create).bind(None, **kw)
         self.calls.append(kw)
         return SimpleNamespace(content=[SimpleNamespace(type="text", text=self.text)], stop_reason="end_turn")
 
