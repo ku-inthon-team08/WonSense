@@ -31,7 +31,6 @@ export default function Home() {
             title={t.heatmapPageTitle}
             href="/heatmap"
             icon={<ChartIcon className="h-4 w-4" />}
-            actionLabel={t.viewDetails}
           />
           <HeatmapPreview />
           <p className="mt-auto pt-3 text-xs text-slate-500">{t.heatmapSource}</p>
@@ -48,7 +47,6 @@ export default function Home() {
             title={t.review.pageTitle}
             href="/reviews"
             icon={<StarIcon className="h-4 w-4" />}
-            actionLabel={t.seeMore}
           />
           {/* On md+ the list is taken out of flow so the card stays as tall as its row neighbour; overflow fades to white. */}
           <div className="relative flex-1 md:min-h-40">
