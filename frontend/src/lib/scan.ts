@@ -2,15 +2,22 @@
 import { api } from "@/lib/api";
 
 export type Verdict = "cheap" | "fair" | "pricey" | "ripoff";
+export type Ingredient = "pork" | "beef" | "chicken" | "seafood" | "egg" | "dairy" | "wheat" | "nuts" | "soy" | "alcohol";
 
 export type ScanLine = {
   name: string; // as written in the photo
   name_en: string;
   price: number;
   quantity: string | null;
+  // menu translation — present on every line
+  description_en: string | null;
+  spice_level: 0 | 1 | 2 | 3 | null; // null = not food
+  contains: Ingredient[];
+  vegetarian: boolean | null; // null = unsure / not food
   matched: boolean;
   // only when matched
-  basis?: "official" | "estimate"; // Seoul city grocery data / Numbeo estimate
+  basis?: "official" | "menu" | "estimate"; // Seoul grocery data / Seoul good-price restaurant menus / Numbeo estimate
+  store_count?: number; // menu: how many stores the price range comes from
   item_id?: number | null;
   catalog_name?: string;
   catalog_unit?: string | null;

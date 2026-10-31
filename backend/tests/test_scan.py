@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.db.supabase import get_supabase
 from app.main import app
-from app.routers.items import get_items
+from app.routers.items import get_items, get_menus
 from app.core.claude import get_claude
 from app.services.scan import ScannedLine, ScanOutput, catalog_text, judge_line, load_reference, summarize, verdict
 
@@ -19,9 +19,23 @@ DISTRICTS = [
 ]
 
 
+# 착한가격업소 김치찌개 5곳: 보통 범위(25~75%) 8,000~9,000원
+MENUS = {
+    "rows": [
+        {"store_id": i, "store_name": f"가게{i}", "menu_name": name, "industry": "한식", "district_code": "11440", "price": p}
+        for i, (name, p) in enumerate(
+            [("김치찌개", 7000), ("김치찌개(1인)", 8000), ("김치찌개", 8000), ("김치찌게", 9000), ("김치찌개", 10000)], 1
+        )
+    ],
+    "districts": {"11440": "마포구"},
+    "reference_date": "2026-10-20",
+}
+
+
 def line(**kw) -> ScannedLine:
     base = {"name": "계란 30구", "name_en": "eggs", "price": 14400, "quantity": "30구",
-            "item_id": 1, "quantity_ratio": 3.0}
+            "item_id": 1, "reference_id": None, "quantity_ratio": 3.0, "description_en": "A tray of 30 eggs.",
+            "spice_level": None, "contains": ["egg"], "vegetarian": True}
     return ScannedLine(**{**base, **kw})
 
 
@@ -106,6 +120,35 @@ def test_catalog_is_stable_regardless_of_input_order():
     assert catalog_text([RAMYEON, EGGS]) == catalog_text([EGGS, RAMYEON])
 
 
+def stew(**kw) -> ScannedLine:
+    base = {"name": "김치찌개", "name_en": "kimchi stew", "quantity": None, "item_id": None, "quantity_ratio": None,
+            "description_en": "Spicy kimchi stew with pork and tofu.", "spice_level": 2, "contains": ["pork", "soy"],
+            "vegetarian": False}
+    return line(**{**base, **kw})
+
+
+def test_menu_is_judged_against_good_price_store_range():
+    out = judge_line(stew(price=9500), None, [], menus=MENUS)
+    # 착한가격업소는 일부러 싼 가게라 '보통' 범위 위쪽 끝(9,000원)을 기준으로 본다
+    assert out["basis"] == "menu" and out["seoul_avg"] == 9000 and out["seoul_range"] == [8000, 9000]
+    assert out["verdict"] == "fair" and out["store_count"] == 5
+    assert out["source"].startswith("서울시 가격안정") and out["reference_date"] == "2026-10-20"
+    assert judge_line(stew(price=13000), None, [], menus=MENUS)["verdict"] == "ripoff"
+
+
+def test_menu_beats_numbeo_and_numbeo_is_the_fallback():
+    rid = reference_id("Meal at an Inexpensive Restaurant")
+    assert judge_line(stew(price=9000, reference_id=rid), None, [], menus=MENUS)["basis"] == "menu"
+    assert judge_line(stew(price=9000, reference_id=rid), None, [], menus=None)["basis"] == "estimate"
+
+
+def test_translation_fields_pass_through_even_when_unmatched():
+    out = judge_line(stew(name="수제 막걸리", price=0), None, [], menus=MENUS)
+    assert out["matched"] is False
+    assert out["description_en"].startswith("Spicy") and out["spice_level"] == 2
+    assert out["contains"] == ["pork", "soy"] and out["vegetarian"] is False
+
+
 class FakeQuery:
     def __init__(self, data):
         self.data = data
@@ -134,23 +177,26 @@ class FakeClaude:
 
 
 def test_scan_endpoint():
-    claude = FakeClaude(ScanOutput(lines=[line(), line(name="떡볶이", item_id=None, quantity_ratio=None, price=5000)]))
+    claude = FakeClaude(ScanOutput(lines=[line(), line(name="떡볶이", item_id=None, quantity_ratio=None, price=5000), stew(price=9000)]))
     app.dependency_overrides[get_items] = lambda: [EGGS, RAMYEON]
+    app.dependency_overrides[get_menus] = lambda: MENUS
     app.dependency_overrides[get_supabase] = lambda: FakeSupabase()
     app.dependency_overrides[get_claude] = lambda: claude
     image = "data:image/png;base64," + base64.b64encode(b"fake-png").decode()
     try:
         client = TestClient(app)
         body = client.post("/api/scan", json={"image": image, "media_type": "image/png", "district": "마포구"}).json()
-        assert [l["matched"] for l in body["lines"]] == [True, False]
+        assert [l["matched"] for l in body["lines"]] == [True, False, True]
         assert body["lines"][0]["district_avg"] == 10800
-        assert body["summary"]["verdict"] == "ripoff"  # 마포구 평균 10,800원 기준
+        assert body["lines"][2]["basis"] == "menu" and body["lines"][2]["spice_level"] == 2
+        assert body["summary"]["total_avg"] == 10800 + 9000  # 마포구 계란 평균 + 김치찌개 기준가
 
         sent = claude.calls[0]
         assert sent["messages"][0]["content"][0]["source"]["data"] == base64.b64encode(b"fake-png").decode()
         assert sent["model"] == "claude-haiku-5-5"
         assert "1 | 계란 10개 | 10개" in sent["system"][1]["text"]
         assert "Taxi Start" in sent["system"][1]["text"]
+        assert "spice_level" in sent["system"][0]["text"]
 
         assert client.post("/api/scan", json={"image": "not base64!"}).status_code == 400
         claude.output = None
