@@ -124,6 +124,7 @@ RESTAURANT_TERMS = {
 }
 
 _PAREN = re.compile(r"\(([^)]*)\)")
+HANGUL = re.compile(r"[가-힣]")
 
 
 def normalize(text: str) -> str:
@@ -131,8 +132,16 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[-_]", " ", (text or "").lower())).strip()
 
 
-def _compact(text: str) -> str:
-    return re.sub(r"\s+", "", text)
+def compact(text: str) -> str:
+    """공백을 모두 뺀다. 띄어쓰기가 달라도 같은 말로 비교할 때 쓴다 ("김치 찌개" = "김치찌개").
+    메뉴 수천 행마다 부르는 함수라 정규식 대신 split을 쓴다 (2배 이상 빠르다)."""
+    return "".join(text.split())
+
+
+def free_korean_term(query: str) -> str | None:
+    """사전에 없을 때 이름에서 그대로 찾아볼 한글 검색어 (두 글자 이상). 없으면 None."""
+    term = compact(normalize(query))
+    return term if HANGUL.search(term) and len(term) >= 2 else None
 
 
 def split_name(name_ko: str) -> tuple[str, list[str]]:
@@ -173,25 +182,25 @@ def score_item(query: str, item: dict) -> int:
     q = normalize(query)
     if not q:
         return 0
-    qc = _compact(q)
+    qc = compact(q)
     base, _ = split_name(item["name_ko"])
     exact, partial = _search_keys(item)
-    compact_exact = {_compact(k) for k in exact}
+    compact_exact = {compact(k) for k in exact}
 
     # 기본 품목명 자체와 일치 ("rice" → 쌀) 가 동의어 일치("rice" → 즉석밥)보다 앞에 오게 한다
     entry = ITEM_DICT.get(base)
     primary = {normalize(base)} | ({normalize(entry[0]), normalize(entry[1][0])} if entry else set())
-    if q in primary or qc in {_compact(p) for p in primary}:
+    if q in primary or qc in {compact(p) for p in primary}:
         return 100
     if q in exact or qc in compact_exact:
         return 90
-    if any(k.startswith(q) or _compact(k).startswith(qc) for k in partial) and len(qc) >= 2:
+    if any(k.startswith(q) or compact(k).startswith(qc) for k in partial) and len(qc) >= 2:
         return 70
-    if len(qc) >= 2 and any(qc in _compact(k) for k in partial):
+    if len(qc) >= 2 and any(qc in compact(k) for k in partial):
         return 50
     # "소주 한 병", "price of soju" 처럼 검색어 안에 품목명이 들어 있는 경우
     tokens = set(q.split())
-    if any((k in tokens) or (len(_compact(k)) >= 2 and _compact(k) in qc and not k.isascii()) for k in exact):
+    if any((k in tokens) or (len(compact(k)) >= 2 and compact(k) in qc and not k.isascii()) for k in exact):
         return 40
     return 0
 
@@ -241,5 +250,5 @@ def suggest(query: str, items: list[dict], n: int = 5) -> list[str]:
 
 def is_restaurant_query(query: str) -> bool:
     q = normalize(query)
-    qc = _compact(q)
-    return any(t == q or _compact(t) == qc or (not t.isascii() and _compact(t) in qc) for t in RESTAURANT_TERMS)
+    qc = compact(q)
+    return any(t == q or compact(t) == qc or (not t.isascii() and compact(t) in qc) for t in RESTAURANT_TERMS)

@@ -5,7 +5,6 @@ from app.services.quiz import (
     build_guess,
     build_higher_lower,
     build_menu,
-    grade,
     menu_stats,
 )
 
@@ -26,15 +25,6 @@ ITEMS = [
         start=1,
     )
 ]
-
-
-def test_grade_right_near_wrong_in_both_directions():
-    assert grade(1050, 1000, 0.10, 0.25) == "right"
-    assert grade(950, 1000, 0.10, 0.25) == "right"
-    assert grade(1200, 1000, 0.10, 0.25) == "near"
-    assert grade(800, 1000, 0.10, 0.25) == "near"
-    assert grade(1400, 1000, 0.10, 0.25) == "wrong"
-    assert grade(600, 1000, 0.10, 0.25) == "wrong"
 
 
 def test_guess_uses_premade_question_and_skips_previous_item():

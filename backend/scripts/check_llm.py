@@ -8,6 +8,7 @@
 import base64
 import mimetypes
 import sys
+from pathlib import Path
 
 from app.core.claude import get_claude, get_llm_model
 from app.core.config import get_settings
@@ -29,7 +30,7 @@ def main() -> None:
 
         path = sys.argv[1]
         media_type = mimetypes.guess_type(path)[0] or "image/jpeg"
-        image = base64.b64encode(open(path, "rb").read()).decode()
+        image = base64.b64encode(Path(path).read_bytes()).decode()
         lines = extract_lines(client, image, media_type, get_items(get_supabase()), model)
         print(f"image:    {len(lines)}개 품목")
         for line in lines:

@@ -10,7 +10,7 @@
 import random
 from typing import Literal
 
-from app.services.menus import MENU_DICT, price_stats
+from app.services.menus import MENU_DICT, contains_any, price_stats, round_to
 
 QuizType = Literal["guess", "higher_lower", "menu"]
 QUIZ_TYPES: tuple[QuizType, ...] = ("guess", "higher_lower", "menu")
@@ -20,13 +20,6 @@ MENU_MIN_STORES = 20  # 메뉴 퀴즈는 가게가 이만큼 이상 조사된 �
 MENU_SOURCE = "서울시 착한가격업소 기준"
 FOOD_INDUSTRIES = {"한식", "중식", "경양식/일식", "기타외식업"}
 NON_FOOD_MENUS = {"커트", "파마", "염색"}
-
-
-def grade(guess: int, avg: int, tol_correct: float, tol_close: float) -> Literal["right", "near", "wrong"]:
-    error = abs(guess - avg) / avg
-    if error <= tol_correct:
-        return "right"
-    return "near" if error <= tol_close else "wrong"
 
 
 def _pick(pool: list, key, exclude: str | None, rng: random.Random):
@@ -87,14 +80,10 @@ def menu_stats(rows: list[dict]) -> list[dict]:
     for key, (_en, spellings, _aliases) in MENU_DICT.items():
         if key in NON_FOOD_MENUS:
             continue
-        prices = [r["price"] for r in food if any(s in "".join(r["menu_name"].split()) for s in spellings)]
+        prices = [r["price"] for r in food if contains_any(r["menu_name"], spellings)]
         if len(prices) >= MENU_MIN_STORES:
             out.append({"menu_name": key, **price_stats(prices)})
     return out
-
-
-def _round_to(value: float, step: int) -> int:
-    return int(round(value / step) * step)
 
 
 def build_menu(stats: list[dict], exclude: str | None, rng: random.Random) -> dict:
@@ -102,18 +91,18 @@ def build_menu(stats: list[dict], exclude: str | None, rng: random.Random) -> di
     m = _pick(stats, lambda s: f"menu:{s['menu_name']}", exclude, rng)
     low, high = m["price_low"], m["price_high"]
     if rng.random() < 0.5:
-        shown = _round_to(rng.uniform(low, high), 500)
+        shown = round_to(rng.uniform(low, high), 500)
         if not low <= shown <= high:
-            shown = _round_to(rng.uniform(low, high), 100)
+            shown = round_to(rng.uniform(low, high), 100)
         answer = "normal"
     else:
-        shown = max(_round_to(high * rng.uniform(1.2, 1.6), 500), high + 500)
+        shown = max(round_to(high * rng.uniform(1.2, 1.6), 500), high + 500)
         answer = "above"
     return {
         "type": "menu",
         "key": f"menu:{m['menu_name']}",
         "menu_name": m["menu_name"],
-        "menu_name_en": MENU_DICT[m["menu_name"]][0] if m["menu_name"] in MENU_DICT else None,
+        "menu_name_en": MENU_DICT[m["menu_name"]][0],
         "question": f"착한가격업소에서 {m['menu_name']} {shown:,}원, 보통 가격일까요 비싼 편일까요?",
         "shown_price": shown,
         "median_price": m["price_median"],

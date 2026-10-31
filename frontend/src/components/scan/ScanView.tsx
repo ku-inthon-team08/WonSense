@@ -2,10 +2,11 @@
 
 import { useRef, useState } from "react";
 
+import { ErrorBox } from "@/components/ErrorBox";
 import { CameraIcon } from "@/components/icons/CameraIcon";
-import { formatKrw } from "@/lib/reviews";
+import { DISTRICT_NAMES } from "@/lib/districts";
+import { formatKrw } from "@/lib/format";
 import { rejudge, scanPhoto, shrinkPhoto, type ScanLine, type ScanResponse, type Verdict } from "@/lib/scan";
-import { SEOUL_DISTRICTS } from "@/lib/seoulDistricts";
 import { useDistrictName, useT } from "@/lib/i18n";
 import type { Strings } from "@/lib/strings";
 
@@ -18,8 +19,6 @@ const verdictStyle: Record<Verdict, string> = {
   pricey: "bg-amber-50 text-amber-700",
   ripoff: "bg-rose-50 text-rose-700",
 };
-
-const districtNames = [...SEOUL_DISTRICTS].map((d) => d.name).sort((a, b) => a.localeCompare(b, "ko"));
 
 type State =
   | { step: "idle" }
@@ -61,7 +60,7 @@ export function ScanView() {
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-900 focus:border-brand focus:outline-none"
           >
             <option value="">{t.scan.districtNone}</option>
-            {districtNames.map((name) => (
+            {DISTRICT_NAMES.map((name) => (
               <option key={name} value={name}>{dn(name)}</option>
             ))}
           </select>
@@ -114,12 +113,7 @@ export function ScanView() {
         <p className="py-6 text-center text-slate-500" aria-live="polite">{t.scan.reading}</p>
       )}
 
-      {state.step === "error" && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          <p>{t.scan.error}</p>
-          <p className="mt-1 text-xs opacity-80">{state.message}</p>
-        </div>
-      )}
+      {state.step === "error" && <ErrorBox title={t.scan.error} message={state.message} />}
 
       {/* re-judged on every district change: no new Claude call */}
       {state.step === "done" && <ScanResult result={rejudge(state.result, district)} district={district} />}

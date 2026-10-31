@@ -2,28 +2,18 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { ErrorBox } from "@/components/ErrorBox";
 import { ApiError } from "@/lib/api";
-import {
-  deleteReview,
-  formatDate,
-  formatKrw,
-  getReview,
-  verifyReviewPassword,
-  type Review,
-} from "@/lib/reviews";
+import { formatDate, formatKrw } from "@/lib/format";
+import { deleteReview, getReview, verifyReviewPassword, type Review } from "@/lib/reviews";
 import { useT } from "@/lib/i18n";
+import { useApi } from "@/lib/useApi";
 
 import { PasswordDialog } from "./PasswordDialog";
 import { PriceFeelingBadge, Stars, StoreTag } from "./ReviewMeta";
 import { ReviewForm } from "./ReviewForm";
-
-type State =
-  | { status: "loading" }
-  | { status: "notFound" }
-  | { status: "error"; message: string }
-  | { status: "ok"; review: Review };
 
 export function ReviewDetail() {
   const t = useT();
@@ -33,46 +23,17 @@ export function ReviewDetail() {
 
   const validId = Number.isInteger(reviewId) && reviewId > 0;
 
-  const [loaded, setLoaded] = useState<{ id: number; state: State } | null>(null);
+  const { data, error } = useApi(validId ? `review:${reviewId}` : null, (signal) => getReview(reviewId, { signal }));
+  const [saved, setSaved] = useState<Review | null>(null); // the PATCH response, so an edit shows without a reload
   const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
   const [editPassword, setEditPassword] = useState<string | null>(null);
 
-  const state: State = !validId
-    ? { status: "notFound" }
-    : loaded?.id === reviewId
-      ? loaded.state
-      : { status: "loading" };
-  const setState = (next: State) => setLoaded({ id: reviewId, state: next });
-
-  useEffect(() => {
-    if (!validId) return;
-    let cancelled = false;
-    getReview(reviewId)
-      .then((review) => !cancelled && setLoaded({ id: reviewId, state: { status: "ok", review } }))
-      .catch((e: Error) => {
-        if (cancelled) return;
-        setLoaded({
-          id: reviewId,
-          state: e instanceof ApiError && e.status === 404 ? { status: "notFound" } : { status: "error", message: e.message },
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reviewId, validId]);
-
-  if (state.status === "loading") return <p className="py-10 text-center text-slate-500">{t.review.loading}</p>;
-  if (state.status === "notFound")
+  if (!validId || (error instanceof ApiError && error.status === 404))
     return <p className="py-10 text-center text-slate-500">{t.review.notFound}</p>;
-  if (state.status === "error")
-    return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-        <p>{t.review.loadError}</p>
-        <p className="mt-1 text-xs opacity-80">{state.message}</p>
-      </div>
-    );
+  if (error) return <ErrorBox title={t.review.loadError} message={error.message} />;
 
-  const review = state.review;
+  const review = saved?.id === reviewId ? saved : data;
+  if (!review) return <p className="py-10 text-center text-slate-500">{t.review.loading}</p>;
 
   if (editPassword) {
     return (
@@ -83,8 +44,8 @@ export function ReviewDetail() {
           review={review}
           password={editPassword}
           onCancel={() => setEditPassword(null)}
-          onSaved={(saved) => {
-            setState({ status: "ok", review: saved });
+          onSaved={(updated) => {
+            setSaved(updated);
             setEditPassword(null);
           }}
         />

@@ -1,17 +1,17 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { listReviews, type ReviewPage } from "@/lib/reviews";
+import { ErrorBox } from "@/components/ErrorBox";
+import { listReviews } from "@/lib/reviews";
 import { useT } from "@/lib/i18n";
+import { inputClass } from "@/lib/ui";
+import { useApi } from "@/lib/useApi";
 
 import { ReviewCard } from "./ReviewCard";
 
 const PAGE_SIZE = 10;
-
-type State = { status: "loading" } | { status: "error"; message: string } | { status: "ok"; data: ReviewPage };
-type Result = { key: string; state: State };
 
 // Search term and page live in the URL (?q=&page=) so results can be linked to, e.g. from F1 search.
 export function ReviewList() {
@@ -23,21 +23,9 @@ export function ReviewList() {
   const page = Math.max(1, Number(params.get("page")) || 1);
 
   const [reload, setReload] = useState(0);
-  const [result, setResult] = useState<Result | null>(null);
-
-  // A result belongs to one (q, page, reload) request; anything else means we're still loading.
-  const key = `${q}|${page}|${reload}`;
-  const state: State = result?.key === key ? result.state : { status: "loading" };
-
-  useEffect(() => {
-    let cancelled = false;
-    listReviews({ q, page, size: PAGE_SIZE })
-      .then((data) => !cancelled && setResult({ key, state: { status: "ok", data } }))
-      .catch((e: Error) => !cancelled && setResult({ key, state: { status: "error", message: e.message } }));
-    return () => {
-      cancelled = true;
-    };
-  }, [key, q, page]);
+  const { data, error, loading } = useApi(`reviews:${q}|${page}|${reload}`, (signal) =>
+    listReviews({ q, page, size: PAGE_SIZE }, { signal }),
+  );
 
   function go(next: { q?: string; page?: number }) {
     const qs = new URLSearchParams();
@@ -49,7 +37,7 @@ export function ReviewList() {
     router.push(s ? `${pathname}?${s}` : pathname);
   }
 
-  const totalPages = state.status === "ok" ? Math.max(1, Math.ceil(state.data.total / PAGE_SIZE)) : 1;
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
     <div>
@@ -57,28 +45,26 @@ export function ReviewList() {
       <SearchForm key={q} initial={q} onSearch={(term) => go({ q: term, page: 1 })} />
 
       <div className="mt-4">
-        {state.status === "loading" && <p className="py-10 text-center text-slate-500">{t.review.loading}</p>}
+        {loading && <p className="py-10 text-center text-slate-500">{t.review.loading}</p>}
 
-        {state.status === "error" && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            <p>{t.review.loadError}</p>
-            <p className="mt-1 text-xs opacity-80">{state.message}</p>
+        {error && (
+          <ErrorBox title={t.review.loadError} message={error.message}>
             <button onClick={() => setReload((n) => n + 1)} className="mt-2 font-medium underline">
               {t.review.retry}
             </button>
-          </div>
+          </ErrorBox>
         )}
 
-        {state.status === "ok" && (
+        {data && (
           <>
-            <p className="mb-2 text-sm text-slate-500">{t.review.total(state.data.total)}</p>
-            {state.data.items.length === 0 ? (
+            <p className="mb-2 text-sm text-slate-500">{t.review.total(data.total)}</p>
+            {data.items.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                 {q ? t.review.noResults(q) : t.reviewEmpty}
               </div>
             ) : (
               <ul className="flex flex-col gap-3">
-                {state.data.items.map((r) => (
+                {data.items.map((r) => (
                   <li key={r.id}>
                     <ReviewCard review={r} />
                   </li>
@@ -130,7 +116,7 @@ function SearchForm({ initial, onSearch }: { initial: string; onSearch: (q: stri
         onChange={(e) => setInput(e.target.value)}
         placeholder={t.review.searchPlaceholder}
         aria-label={t.review.search}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand"
+        className={inputClass}
       />
       <button type="submit" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white">
         {t.review.search}

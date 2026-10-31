@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 
-import { formatDate, formatKrw, type Review } from "@/lib/reviews";
+import { formatDate, formatKrw } from "@/lib/format";
+import type { Review } from "@/lib/reviews";
 import { useT } from "@/lib/i18n";
 
 import { PriceFeelingBadge, Stars, StoreTag } from "./ReviewMeta";

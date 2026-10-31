@@ -43,7 +43,7 @@ export default function Home() {
 
       {/* Cards fill the rest of the viewport on md+ */}
       <div className={`${frame} grid flex-1 gap-6 py-6 md:grid-cols-2 md:py-8`}>
-        {/* ② Today's quiz (LLM) */}
+        {/* ② Price quiz (+ exchange rates) */}
         <section className={card}>
           <SectionHeader title={t.quizTitle} href="/quiz" />
           <QuizCard />

@@ -1,6 +1,7 @@
 // Store search with the Kakao Maps SDK (services library). It runs in the browser, so it uses the
 // JavaScript key, which Kakao only accepts from the site domains registered on the app.
-import { DISTRICTS, type NewStore, type StoreCategory } from "@/lib/reviews";
+import { DISTRICT_NAMES } from "@/lib/districts";
+import type { NewStore, StoreCategory } from "@/lib/reviews";
 
 type KakaoPlace = {
   place_name: string;
@@ -59,7 +60,7 @@ function toNewStore(place: KakaoPlace): NewStore | null {
   return {
     name: place.place_name,
     category: categoryOf(place),
-    district: (DISTRICTS as readonly string[]).includes(district) ? district : null,
+    district: DISTRICT_NAMES.includes(district) ? district : null,
     address: place.road_address_name || place.address_name,
   };
 }

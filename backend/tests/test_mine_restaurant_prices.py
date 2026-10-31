@@ -54,5 +54,6 @@ def test_load_attempts_reads_jsonl(tmp_path):
 
     p = tmp_path / "attempts.jsonl"
     assert load_attempts(p) == set()
-    p.write_text('{"place_id": "1", "status": "not_found"}\n{"place_id": "2", "status": "saved"}\n\n')
+    # 한글 가게 이름이 들어 있어도 Windows 기본 인코딩(cp949/cp1252)과 상관없이 읽혀야 한다
+    p.write_text('{"place_id": "1", "place": "불타는다동화로"}\n{"place_id": "2", "status": "saved"}\n\n', encoding="utf-8")
     assert load_attempts(p) == {"1", "2"}

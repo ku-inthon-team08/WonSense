@@ -20,7 +20,7 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: ANTHROPIC_API_KEY # 퀴즈 생성
+      - key: ANTHROPIC_API_KEY # 바가지 판독기 (사진 판독)
         sync: false
       # CORS: won-sense*.vercel.app 은 코드에서 자동 허용한다.
       # 프론트 주소가 다르면 대시보드에서 CORS_ORIGINS (쉼표로 여러 개)를 추가한다.

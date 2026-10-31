@@ -1,13 +1,15 @@
 import logging
-import time
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from postgrest.exceptions import APIError
 from supabase import Client
 
-from app.db.supabase import get_supabase
+from app.core.cache import TtlCache
+from app.db.supabase import fetch_all, get_supabase
 from app.services.heatmap import SEOUL_REGION
-from app.services.menus import search_menus
+from app.services.menus import MENU_SOURCE, search_menus
 from app.services.products import search_products
 from app.services.restaurants import search_restaurant_prices
 from app.services.search import english_name, is_restaurant_query, search_items, suggest
@@ -16,35 +18,27 @@ router = APIRouter(prefix="/api/items", tags=["items"])
 
 logger = logging.getLogger(__name__)
 
-PAGE = 1000
-CACHE_TTL = 600  # 가격은 월 1회 갱신되므로 10분 캐시면 충분하다
-_cache: dict = {"at": 0.0, "items": None}
-MENU_SOURCE = "서울시 가격안정 모범업소(착한가격업소) 상품목록"
 PRODUCT_SOURCE = "한국소비자원 참가격 생필품 가격 (전국 마트·편의점)"
 RESTAURANT_SOURCE = "웹 검색 기반 추정 (식당 목록: 카카오, 가격: Claude 웹 검색)"
+
+_items = TtlCache()
+_menus = TtlCache()
+_products = TtlCache()
+_restaurants = TtlCache()
 
 
 def _load_items(supabase: Client) -> list[dict]:
     """품목마다 가장 최근 기준일의 서울 전체 행(price_stats region='seoul')을 붙여서 돌려준다."""
-    rows: list[dict] = []
-    start = 0
-    while True:
-        batch = (
-            supabase.table("price_stats")
-            .select(
-                "item_id, price_min, price_avg, price_max, sample_count, source, reference_date, "
-                "items(name_ko, name_en, aliases, category, unit)"
-            )
-            .eq("region", SEOUL_REGION)
-            .order("reference_date", desc=True)
-            .range(start, start + PAGE - 1)
-            .execute()
-            .data
+    rows = fetch_all(
+        lambda: supabase.table("price_stats")
+        .select(
+            "item_id, price_min, price_avg, price_max, sample_count, source, reference_date, "
+            "items(name_ko, name_en, aliases, category, unit)"
         )
-        rows.extend(batch)
-        if len(batch) < PAGE:
-            break
-        start += PAGE
+        .eq("region", SEOUL_REGION)
+        .order("reference_date", desc=True)
+        .order("id")
+    )
 
     latest: dict[int, dict] = {}
     for r in rows:
@@ -70,32 +64,26 @@ def _load_items(supabase: Client) -> list[dict]:
 
 
 def get_items(supabase: Client = Depends(get_supabase)) -> list[dict]:
-    now = time.monotonic()
-    if _cache["items"] is None or now - _cache["at"] > CACHE_TTL:
-        _cache["items"] = _load_items(supabase)
-        _cache["at"] = now
-    return _cache["items"]
+    return _items.get(lambda: _load_items(supabase))
 
 
-_menu_cache: dict = {"at": 0.0, "data": None}
+def _cached_optional(cache: TtlCache, table: str, load: Callable[[], Any], empty: Any) -> Any:
+    """마이그레이션 전이라 table이 없어도 나머지 검색은 되도록 빈 값으로 진행한다 (다음 요청에 다시 시도)."""
+    try:
+        return cache.get(load)
+    except APIError as e:
+        logger.warning("%s를 읽지 못했습니다: %s", table, e)
+        return empty
 
 
 def _load_menus(supabase: Client) -> dict:
     """식당 메뉴 가격 전체와 자치구 이름. 4천여 행이라 메모리에 두고 검색한다."""
-    rows: list[dict] = []
-    start = 0
-    while True:
-        batch = (
-            supabase.table("menu_prices")
-            .select("store_id, store_name, menu_name, industry, district_code, price, fetched_on")
-            .range(start, start + PAGE - 1)
-            .execute()
-            .data
-        )
-        rows.extend(batch)
-        if len(batch) < PAGE:
-            break
-        start += PAGE
+    rows = fetch_all(
+        lambda: supabase.table("menu_prices")
+        .select("store_id, store_name, menu_name, industry, district_code, price, fetched_on")
+        .order("store_id")
+        .order("menu_name")
+    )
     districts = {d["code"]: d["name_ko"] for d in supabase.table("districts").select("code, name_ko").execute().data}
     return {
         "rows": rows,
@@ -105,16 +93,8 @@ def _load_menus(supabase: Client) -> dict:
 
 
 def get_menus(supabase: Client = Depends(get_supabase)) -> dict:
-    now = time.monotonic()
-    if _menu_cache["data"] is None or now - _menu_cache["at"] > CACHE_TTL:
-        try:
-            _menu_cache["data"] = _load_menus(supabase)
-        except APIError as e:
-            # menu_prices 마이그레이션 전이어도 장보기 검색은 되도록 메뉴 없이 진행한다 (다음 요청에 다시 시도)
-            logger.warning("menu_prices를 읽지 못했습니다: %s", e)
-            return {"rows": [], "districts": {}, "reference_date": None}
-        _menu_cache["at"] = now
-    return _menu_cache["data"]
+    empty = {"rows": [], "districts": {}, "reference_date": None}
+    return _cached_optional(_menus, "menu_prices", lambda: _load_menus(supabase), empty)
 
 
 def _public(item: dict) -> dict:
@@ -125,58 +105,24 @@ def _public(item: dict) -> dict:
     return out
 
 
-_product_cache: dict = {"at": 0.0, "data": None}
-
-
-def _load_products(supabase: Client) -> list[dict]:
-    """마트·편의점 공산품 가격 요약 전체 (상품당 한 행, 600개 안팎)."""
-    rows: list[dict] = []
-    start = 0
-    while True:
-        batch = supabase.table("product_prices").select("*").range(start, start + PAGE - 1).execute().data
-        rows.extend(batch)
-        if len(batch) < PAGE:
-            break
-        start += PAGE
-    return rows
-
-
 def get_products(supabase: Client = Depends(get_supabase)) -> list[dict]:
-    now = time.monotonic()
-    if _product_cache["data"] is None or now - _product_cache["at"] > CACHE_TTL:
-        try:
-            _product_cache["data"] = _load_products(supabase)
-        except APIError as e:
-            # product_prices 마이그레이션 전이어도 나머지 검색은 되도록 상품 없이 진행한다
-            logger.warning("product_prices를 읽지 못했습니다: %s", e)
-            return []
-        _product_cache["at"] = now
-    return _product_cache["data"]
-
-
-_restaurant_cache: dict = {"at": 0.0, "data": None}
+    """마트·편의점 공산품 가격 요약 전체 (상품당 한 행, 600개 안팎)."""
+    return _cached_optional(
+        _products,
+        "product_prices",
+        lambda: fetch_all(lambda: supabase.table("product_prices").select("*").order("product_name")),
+        [],
+    )
 
 
 def get_restaurants(supabase: Client = Depends(get_supabase)) -> list[dict]:
     """일반 식당 메뉴 가격 (LLM 웹 검색으로 수집, 출처 URL 포함)."""
-    now = time.monotonic()
-    if _restaurant_cache["data"] is None or now - _restaurant_cache["at"] > CACHE_TTL:
-        try:
-            rows: list[dict] = []
-            start = 0
-            while True:
-                batch = supabase.table("restaurant_prices").select("*").range(start, start + PAGE - 1).execute().data
-                rows.extend(batch)
-                if len(batch) < PAGE:
-                    break
-                start += PAGE
-        except APIError as e:
-            # restaurant_prices 마이그레이션 전이어도 나머지 검색은 되도록 진행한다
-            logger.warning("restaurant_prices를 읽지 못했습니다: %s", e)
-            return []
-        _restaurant_cache["data"] = rows
-        _restaurant_cache["at"] = now
-    return _restaurant_cache["data"]
+    return _cached_optional(
+        _restaurants,
+        "restaurant_prices",
+        lambda: fetch_all(lambda: supabase.table("restaurant_prices").select("*").order("place_id").order("menu")),
+        [],
+    )
 
 
 @router.get("/search")

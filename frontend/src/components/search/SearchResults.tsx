@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 
+import { ErrorBox } from "@/components/ErrorBox";
 import { SearchBar } from "@/components/SearchBar";
-import { formatKrw } from "@/lib/reviews";
+import { formatKrw, formatKrwRange } from "@/lib/format";
 import { searchItems, type MenuResult, type ProductResult, type SearchItem, type WebMenuResult } from "@/lib/search";
 import { useDistrictName, useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
@@ -14,6 +16,7 @@ export function SearchResults() {
   const t = useT();
   const q = (useSearchParams().get("q") ?? "").trim();
   const { data, error, loading } = useApi(q ? `search:${q}` : null, (signal) => searchItems(q, { signal }));
+  const hasOthers = data ? data.menus.length > 0 || data.web_menus.length > 0 || data.products.length > 0 : false;
 
   return (
     <div>
@@ -23,60 +26,41 @@ export function SearchResults() {
       <div className="mt-6">
         {!q && <p className="py-10 text-center text-slate-500">{t.search.empty}</p>}
         {loading && <p className="py-10 text-center text-slate-500">{t.loading}</p>}
-        {error && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            <p>{t.search.error}</p>
-            <p className="mt-1 text-xs opacity-80">{error.message}</p>
-          </div>
-        )}
+        {error && <ErrorBox title={t.search.error} message={error.message} />}
 
         {data && data.menus.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-1 font-semibold text-slate-800">{t.search.menusTitle}</h2>
-            <p className="mb-3 text-xs text-slate-500">{t.search.menusNote}</p>
-            <ul className="flex flex-col gap-3">
-              {data.menus.map((menu) => (
-                <li key={menu.name_ko}>
-                  <MenuCard menu={menu} />
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Section title={t.search.menusTitle} note={t.search.menusNote}>
+            {data.menus.map((menu) => (
+              <li key={menu.name_ko}>
+                <MenuCard menu={menu} />
+              </li>
+            ))}
+          </Section>
         )}
 
         {data && data.web_menus.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-1 font-semibold text-slate-800">{t.search.webMenusTitle}</h2>
-            <p className="mb-3 text-xs text-slate-500">{t.search.webMenusNote}</p>
-            <ul className="flex flex-col gap-3">
-              {data.web_menus.map((menu) => (
-                <li key={menu.menu}>
-                  <WebMenuCard menu={menu} />
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Section title={t.search.webMenusTitle} note={t.search.webMenusNote}>
+            {data.web_menus.map((menu) => (
+              <li key={menu.menu}>
+                <WebMenuCard menu={menu} />
+              </li>
+            ))}
+          </Section>
         )}
 
         {data && data.products.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-1 font-semibold text-slate-800">{t.search.productsTitle}</h2>
-            <p className="mb-3 text-xs text-slate-500">{t.search.productsNote}</p>
-            <ul className="flex flex-col gap-3">
-              {data.products.map((product) => (
-                <li key={product.product_name}>
-                  <ProductCard product={product} />
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Section title={t.search.productsTitle} note={t.search.productsNote}>
+            {data.products.map((product) => (
+              <li key={product.product_name}>
+                <ProductCard product={product} />
+              </li>
+            ))}
+          </Section>
         )}
 
         {data && data.results.length > 0 && (
           <>
-            {(data.menus.length > 0 || data.products.length > 0 || data.web_menus.length > 0) && (
-              <h2 className="mb-1 font-semibold text-slate-800">{t.search.groceriesTitle}</h2>
-            )}
+            {hasOthers && <h2 className="mb-1 font-semibold text-slate-800">{t.search.groceriesTitle}</h2>}
             <p className="mb-2 text-sm text-slate-500">{t.search.count(data.results.length)}</p>
             <ul className="flex flex-col gap-3">
               {data.results.map((item) => (
@@ -90,9 +74,9 @@ export function SearchResults() {
           </>
         )}
 
-        {data && data.results.length === 0 && (data.menus.length > 0 || data.products.length > 0 || data.web_menus.length > 0) && <ReviewLink q={q} />}
+        {data && data.results.length === 0 && hasOthers && <ReviewLink q={q} />}
 
-        {data && data.results.length === 0 && data.menus.length === 0 && data.products.length === 0 && data.web_menus.length === 0 && (
+        {data && data.results.length === 0 && !hasOthers && (
           <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-600">
             <p>{t.search.noResults(q)}</p>
             {data.not_covered && <p className="mt-2 text-sm text-slate-500">{t.search.notCovered}</p>}
@@ -114,6 +98,16 @@ export function SearchResults() {
         )}
       </div>
     </div>
+  );
+}
+
+function Section({ title, note, children }: { title: string; note: string; children: ReactNode }) {
+  return (
+    <section className="mb-8">
+      <h2 className="mb-1 font-semibold text-slate-800">{title}</h2>
+      <p className="mb-3 text-xs text-slate-500">{note}</p>
+      <ul className="flex flex-col gap-3">{children}</ul>
+    </section>
   );
 }
 
@@ -156,11 +150,7 @@ function MenuCard({ menu }: { menu: MenuResult }) {
       </h3>
       <p className="mt-2 text-slate-800">
         {t.search.usually}{" "}
-        <strong className="text-lg">
-          {menu.price_low === menu.price_high
-            ? formatKrw(menu.price_median)
-            : `${formatKrw(menu.price_low)} ~ ${formatKrw(menu.price_high)}`}
-        </strong>
+        <strong className="text-lg">{formatKrwRange(menu.price_low, menu.price_median, menu.price_high)}</strong>
       </p>
       <p className="text-sm text-slate-600">
         {t.search.median} <strong>{formatKrw(menu.price_median)}</strong> ·{" "}
@@ -193,10 +183,6 @@ function MenuCard({ menu }: { menu: MenuResult }) {
 
 function WebMenuCard({ menu }: { menu: WebMenuResult }) {
   const t = useT();
-  const usual =
-    menu.price_low === menu.price_high
-      ? formatKrw(menu.price_median)
-      : `${formatKrw(menu.price_low)} ~ ${formatKrw(menu.price_high)}`;
   return (
     <article className="rounded-xl bg-white p-4 shadow-card">
       <h3 className="font-semibold text-slate-900">
@@ -204,7 +190,8 @@ function WebMenuCard({ menu }: { menu: WebMenuResult }) {
         {menu.name_en && <span className="ml-2 text-sm font-normal text-slate-500">{menu.menu}</span>}
       </h3>
       <p className="mt-2 text-slate-800">
-        {t.search.usually} <strong className="text-lg">{usual}</strong>
+        {t.search.usually}{" "}
+        <strong className="text-lg">{formatKrwRange(menu.price_low, menu.price_median, menu.price_high)}</strong>
       </p>
       <p className="text-sm text-slate-600">
         {t.search.median} <strong>{formatKrw(menu.price_median)}</strong> ·{" "}
@@ -257,10 +244,6 @@ function WebMenuCard({ menu }: { menu: WebMenuResult }) {
 
 function ProductCard({ product }: { product: ProductResult }) {
   const t = useT();
-  const usual =
-    product.price_low === product.price_high
-      ? formatKrw(product.price_median)
-      : `${formatKrw(product.price_low)} ~ ${formatKrw(product.price_high)}`;
   return (
     <article className="rounded-xl bg-white p-4 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -268,7 +251,8 @@ function ProductCard({ product }: { product: ProductResult }) {
         {product.category_en && <span className="text-xs text-slate-500">{product.category_en}</span>}
       </div>
       <p className="mt-2 text-slate-800">
-        {t.search.usually} <strong className="text-lg">{usual}</strong>
+        {t.search.usually}{" "}
+        <strong className="text-lg">{formatKrwRange(product.price_low, product.price_median, product.price_high)}</strong>
       </p>
       <p className="text-sm text-slate-600">
         {t.search.median} <strong>{formatKrw(product.price_median)}</strong>

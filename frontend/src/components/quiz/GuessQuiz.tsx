@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import type { GuessQuizData, Outcome } from "./types";
 
-// backend/app/services/quiz.py의 grade()와 같은 규칙
+// 로그인이 없어서 서버에 답을 보내지 않고 여기서 채점한다. 허용 오차는 품목별로 서버가 내려준다
 function grade(guess: number, q: GuessQuizData): Outcome["result"] {
   const error = Math.abs(guess - q.answer_price) / q.answer_price;
   if (error <= q.tolerance_correct) return "right";
