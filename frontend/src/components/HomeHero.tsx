@@ -13,7 +13,7 @@ import { frame } from "@/lib/ui";
 
 // 홈 첫 화면(한 화면 꽉): 서울 스카이라인 배경 위에
 // 맨 위 = 작은 로고, 왼쪽 = 태그라인 칩 + 질문형 헤드라인 + 핵심 기능(① 가격표 스캔 | ② 검색) + 나머지 기능 바로가기,
-// 오른쪽 = 돋보기 든 호랑이(바닥 그림자). 아래로 스크롤하면 카드 화면으로 넘어간다.
+// 오른쪽 = 돋보기 든 호랑이(바닥 그림자, 좁은 화면에서는 헤드라인 아래). 아래로 스크롤하면 카드 화면으로 넘어간다.
 export function HomeHero() {
   const t = useT();
   const shortcuts = [
@@ -35,8 +35,6 @@ export function HomeHero() {
 
       <div className={`${frame} grid flex-1 items-center gap-6 pb-24 pt-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10`}>
         <div className="hero-content min-w-0 max-w-2xl">
-          <HeroStage className="mx-auto mb-4 w-40 sm:w-48 lg:hidden" />
-
           <div className="hero-rise" style={{ "--rise-delay": "0.06s" } as CSSProperties}>
             <p className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft/80 px-3.5 py-1.5 text-sm font-semibold text-brand-ink">
               <PinIcon className="h-4 w-4" />
@@ -47,6 +45,9 @@ export function HomeHero() {
             </h2>
             <p className="mt-4 text-base font-medium leading-relaxed text-slate-600 md:text-lg">{t.heroIntro}</p>
           </div>
+
+          {/* Below lg the tiger moves out of the right column and sits under the headline. */}
+          <HeroStage className="mx-auto mt-6 w-40 sm:w-48 lg:hidden" />
 
           {/* Core actions side by side: snapping a price tag (primary) and search. */}
           <div className="hero-rise mt-8 flex flex-col gap-3 sm:flex-row sm:items-center" style={{ "--rise-delay": "0.14s" } as CSSProperties}>
