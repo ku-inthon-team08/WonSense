@@ -8,8 +8,9 @@ import { useLocale, useT } from "@/lib/i18n";
 import { inputClass } from "@/lib/ui";
 import { useApi } from "@/lib/useApi";
 
-// inputClass is full width; the select sits beside the amount so it gets a fixed width instead.
-const selectClass = inputClass.replace("w-full", "w-36 sm:w-56");
+// The select sits beside the amount, so it gets a fixed width instead of inputClass's full width.
+// The native arrow hugs the far edge, so it's hidden and drawn as a chevron with matching padding.
+const selectClass = `${inputClass.replace("w-full", "w-full appearance-none truncate")} pr-9`;
 
 // Currencies quoted per 100 units are small enough that cents don't matter.
 const digitsOf = (c: FxCurrency) => (c.unit === 100 ? 0 : 2);
@@ -31,18 +32,32 @@ export function FxConverter() {
   const names = new Intl.DisplayNames([locale], { type: "currency" });
 
   const select = (
-    <select
-      aria-label={t.fx.converter.currency}
-      value={code}
-      onChange={(e) => setCode(e.target.value)}
-      className={`${selectClass} shrink-0 font-semibold`}
-    >
-      {currencies.map((x) => (
-        <option key={x.code} value={x.code}>
-          {x.code} · {names.of(x.code)}
-        </option>
-      ))}
-    </select>
+    <div className="relative w-36 shrink-0 sm:w-56">
+      <select
+        aria-label={t.fx.converter.currency}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        className={`${selectClass} font-semibold`}
+      >
+        {currencies.map((x) => (
+          <option key={x.code} value={x.code}>
+            {x.code} · {names.of(x.code)}
+          </option>
+        ))}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-ink"
+      >
+        <path d="m5 8 5 5 5-5" />
+      </svg>
+    </div>
   );
 
   return (
