@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { SearchResults } from "@/components/search/SearchResults";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 export default function SearchPage() {
+  const t = useT();
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
       <Link href="/" className="text-sm text-brand">{t.home}</Link>

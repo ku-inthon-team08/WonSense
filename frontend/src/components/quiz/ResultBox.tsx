@@ -1,4 +1,6 @@
-import { t } from "@/lib/strings";
+"use client";
+
+import { useT } from "@/lib/i18n";
 import type { Outcome } from "./types";
 
 const STYLE: Record<Outcome["result"], string> = {
@@ -8,6 +10,7 @@ const STYLE: Record<Outcome["result"], string> = {
 };
 
 export function ResultBox({ outcome, source }: { outcome: Outcome; source: string }) {
+  const t = useT();
   return (
     <div className={`quiz-pop rounded-lg p-4 ${STYLE[outcome.result]}`} role="status">
       <p className="text-xl font-bold">{t.quizVerdict[outcome.result]}</p>

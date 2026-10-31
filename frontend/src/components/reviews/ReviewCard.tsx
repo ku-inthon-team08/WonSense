@@ -1,11 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
 import { formatDate, formatKrw, type Review } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { PriceFeelingBadge, Stars, StoreTag } from "./ReviewMeta";
 
 export function ReviewCard({ review, compact = false }: { review: Review; compact?: boolean }) {
+  const t = useT();
   return (
     <Link
       href={`/reviews/${review.id}`}
@@ -29,7 +32,7 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
         )}
         {review.price_feeling && <PriceFeelingBadge feeling={review.price_feeling} />}
         <span className="ml-auto">
-          {review.nickname} · {formatDate(review.created_at)}
+          {review.nickname} · {formatDate(review.created_at, t.dateLocale)}
         </span>
       </div>
     </Link>

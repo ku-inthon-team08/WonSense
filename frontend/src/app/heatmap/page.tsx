@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { HeatmapView } from "@/components/heatmap/HeatmapView";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 export default function HeatmapPage() {
+  const t = useT();
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
       <Link href="/" className="text-sm text-brand">{t.home}</Link>

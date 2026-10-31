@@ -57,16 +57,21 @@ export function ticksFor(mode: ScaleMode): string[] {
   return [`−${c}%`, `−${b}%`, `−${a}%`, `+${a}%`, `+${b}%`, `+${c}%`];
 }
 
-export function binsFor(mode: ScaleMode): Bin[] {
+// below/above label the two open-ended bins; pass the current language's wording (t.heatmapBinBelow/Above)
+export function binsFor(
+  mode: ScaleMode,
+  below = (v: string) => `${v} 이하`,
+  above = (v: string) => `${v} 이상`,
+): Bin[] {
   const [a, b, c] = THRESHOLDS[mode];
   return [
-    { fill: CHEAP[0], ink: LIGHT_INK, label: `−${c}% 이하` },
+    { fill: CHEAP[0], ink: LIGHT_INK, label: below(`−${c}%`) },
     { fill: CHEAP[1], ink: DARK_INK, label: `−${b}~${c}%` },
     { fill: CHEAP[2], ink: DARK_INK, label: `−${a}~${b}%` },
     { fill: NEUTRAL, ink: DARK_INK, label: `±${a}%` },
     { fill: PRICEY[0], ink: DARK_INK, label: `+${a}~${b}%` },
     { fill: PRICEY[1], ink: DARK_INK, label: `+${b}~${c}%` },
-    { fill: PRICEY[2], ink: LIGHT_INK, label: `+${c}% 이상` },
+    { fill: PRICEY[2], ink: LIGHT_INK, label: above(`+${c}%`) },
   ];
 }
 

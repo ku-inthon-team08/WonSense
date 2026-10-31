@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { listReviews, type ReviewPage } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { ReviewCard } from "./ReviewCard";
 
@@ -15,6 +15,7 @@ type Result = { key: string; state: State };
 
 // Search term and page live in the URL (?q=&page=) so results can be linked to, e.g. from F1 search.
 export function ReviewList() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -114,6 +115,7 @@ export function ReviewList() {
 }
 
 function SearchForm({ initial, onSearch }: { initial: string; onSearch: (q: string) => void }) {
+  const t = useT();
   const [input, setInput] = useState(initial);
   return (
     <form

@@ -1,8 +1,11 @@
+"use client";
+
 import { SearchIcon } from "@/components/icons/SearchIcon";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 // F1 — plain GET form to /search (results page reads ?q=).
 export function SearchBar({ defaultValue = "" }: { defaultValue?: string }) {
+  const t = useT();
   return (
     <form action="/search" className="flex items-center gap-2 rounded-full bg-white px-5 py-3">
       <input

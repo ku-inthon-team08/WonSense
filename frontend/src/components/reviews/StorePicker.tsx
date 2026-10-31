@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { DISTRICTS, STORE_CATEGORIES, searchStores, type NewStore, type Store, type StoreCategory } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 
 import { StoreTag } from "./ReviewMeta";
 
@@ -14,6 +14,8 @@ const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2
 // Pick an existing store (autocomplete on GET /api/stores) or describe a new one.
 // The backend reuses a store with the same name + district, so duplicates are harmless.
 export function StorePicker({ value, onChange }: { value: StoreChoice; onChange: (v: StoreChoice) => void }) {
+  const t = useT();
+  const dn = useDistrictName();
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<{ q: string; stores: Store[] }>({ q: "", stores: [] });
   const [open, setOpen] = useState(false);
@@ -87,7 +89,7 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
               <option value="">{t.review.storeDistrictNone}</option>
               {DISTRICTS.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {dn(d)}
                 </option>
               ))}
             </select>

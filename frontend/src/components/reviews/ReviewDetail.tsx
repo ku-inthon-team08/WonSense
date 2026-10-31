@@ -13,7 +13,7 @@ import {
   verifyReviewPassword,
   type Review,
 } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useT } from "@/lib/i18n";
 
 import { PasswordDialog } from "./PasswordDialog";
 import { PriceFeelingBadge, Stars, StoreTag } from "./ReviewMeta";
@@ -26,6 +26,7 @@ type State =
   | { status: "ok"; review: Review };
 
 export function ReviewDetail() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const reviewId = Number(id);
   const router = useRouter();
@@ -107,7 +108,7 @@ export function ReviewDetail() {
         </div>
       )}
       <p className="mt-1 text-xs text-slate-500">
-        {review.nickname} · {formatDate(review.created_at)}
+        {review.nickname} · {formatDate(review.created_at, t.dateLocale)}
         {edited && ` (${t.review.edited})`}
       </p>
 

@@ -1,5 +1,7 @@
+"use client";
+
 import type { PriceFeeling, Store } from "@/lib/reviews";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 
 const feelingStyle: Record<PriceFeeling, string> = {
   cheap: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -8,6 +10,7 @@ const feelingStyle: Record<PriceFeeling, string> = {
 };
 
 export function PriceFeelingBadge({ feeling }: { feeling: PriceFeeling }) {
+  const t = useT();
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${feelingStyle[feeling]}`}>
       {t.priceFeeling[feeling]}
@@ -16,6 +19,7 @@ export function PriceFeelingBadge({ feeling }: { feeling: PriceFeeling }) {
 }
 
 export function Stars({ rating }: { rating: number }) {
+  const t = useT();
   return (
     <span className="text-amber-500" aria-label={`${t.review.rating} ${rating}/5`}>
       {"★".repeat(rating)}
@@ -25,6 +29,8 @@ export function Stars({ rating }: { rating: number }) {
 }
 
 export function StoreTag({ store }: { store: Store }) {
+  const t = useT();
+  const dn = useDistrictName();
   return (
     <span className="inline-flex items-center gap-1 text-sm text-slate-600">
       <span aria-hidden>📍</span>
@@ -34,7 +40,7 @@ export function StoreTag({ store }: { store: Store }) {
       {store.district && (
         <>
           <span className="text-slate-400">·</span>
-          {store.district}
+          {dn(store.district)}
         </>
       )}
     </span>

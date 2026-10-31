@@ -6,11 +6,12 @@ import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 import { formatKrw } from "@/lib/reviews";
 import { searchItems, type MenuResult, type SearchItem } from "@/lib/search";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
 // Reads ?q= so results can be linked to and the browser back button works.
 export function SearchResults() {
+  const t = useT();
   const q = (useSearchParams().get("q") ?? "").trim();
   const { data, error, loading } = useApi(q ? `search:${q}` : null, (signal) => searchItems(q, { signal }));
 
@@ -87,6 +88,7 @@ export function SearchResults() {
 }
 
 function ResultCard({ item }: { item: SearchItem }) {
+  const t = useT();
   return (
     <article className="rounded-xl bg-white p-4 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -114,6 +116,8 @@ function ResultCard({ item }: { item: SearchItem }) {
 }
 
 function MenuCard({ menu }: { menu: MenuResult }) {
+  const t = useT();
+  const dn = useDistrictName();
   return (
     <article className="rounded-xl bg-white p-4 shadow-card">
       <h3 className="font-semibold text-slate-900">
@@ -140,7 +144,7 @@ function MenuCard({ menu }: { menu: MenuResult }) {
                 {e.store_name}
                 <span className="ml-1 text-xs text-slate-500">
                   {e.menu_name}
-                  {e.district && ` · ${e.district}`}
+                  {e.district && ` · ${dn(e.district)}`}
                 </span>
               </span>
               <span className="shrink-0 font-medium tabular-nums">{formatKrw(e.price)}</span>
@@ -158,6 +162,7 @@ function MenuCard({ menu }: { menu: MenuResult }) {
 }
 
 function ReviewLink({ q }: { q: string }) {
+  const t = useT();
   return (
     <Link href={`/reviews?q=${encodeURIComponent(q)}`} className="mt-4 inline-block text-sm font-medium text-brand">
       {t.search.reviews(q)} →

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { binFor, formatPct, formatWon, type HeatmapDistrict, type ScaleMode } from "@/lib/heatmap";
 import { SEOUL_DISTRICTS, SEOUL_VIEWBOX } from "@/lib/seoulDistricts";
-import { t } from "@/lib/strings";
+import { useDistrictName, useT } from "@/lib/i18n";
 
 type Props = {
   districts: HeatmapDistrict[];
@@ -16,6 +16,8 @@ type Props = {
 type Tip = { region: string; x: number; y: number };
 
 export function SeoulMap({ districts, mode, selected, onSelect, compact = false }: Props) {
+  const t = useT();
+  const dn = useDistrictName();
   const [tip, setTip] = useState<Tip | null>(null);
   const byRegion = new Map(districts.map((d) => [d.region, d]));
   const tipData = tip ? byRegion.get(tip.region) : undefined;
@@ -46,7 +48,7 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
               tabIndex={interactive ? 0 : undefined}
               role={interactive ? "button" : undefined}
               aria-pressed={interactive ? isSelected : undefined}
-              aria-label={d ? `${shape.name} ${d.index} (${formatPct(d.diff_pct)})` : `${shape.name} ${t.heatmapNoData}`}
+              aria-label={d ? `${dn(shape.name)} ${d.index} (${formatPct(d.diff_pct)})` : `${dn(shape.name)} ${t.heatmapNoData}`}
               onPointerMove={interactive ? (e) => {
                 const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
                 setTip({ region: shape.code, x: e.clientX - box.left, y: e.clientY - box.top });
@@ -96,7 +98,8 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
                 pointerEvents="none"
                 aria-hidden
               >
-                {shape.name}
+                {/* English names are long; "Mapo" instead of "Mapo-gu" keeps labels from overlapping */}
+                {dn(shape.name).replace(/-gu$/, "")}
               </text>
             );
           })}
@@ -115,7 +118,7 @@ export function SeoulMap({ districts, mode, selected, onSelect, compact = false 
           {tipData.price_avg != null && (
             <div className="font-semibold tabular-nums">{formatWon(tipData.price_avg)}</div>
           )}
-          <div className="text-slate-600">{tipShape.name}</div>
+          <div className="text-slate-600">{dn(tipShape.name)}</div>
           {tipData.price_avg == null && (
             <div className="text-xs text-slate-500">{t.heatmapItemCount(tipData.item_count)}</div>
           )}
