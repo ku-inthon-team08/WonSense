@@ -4,16 +4,22 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { FX_SYMBOL, fetchFx, formatFxKrw, type FxCurrency } from "@/lib/fx";
+import { MAX_PICKS, toggleFxPick, useFxPicks } from "@/lib/fxPicks";
 import { ArrowRightIcon, ExchangeIcon } from "@/components/icons/SectionIcons";
 import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
 // Exchange rates: stat tiles (value + day-over-day change + 14-day sparkline).
-// Home passes `href` so the title links to /fx and shows four currencies; the /fx page passes `all` for every
-// currency and `hideTitle` because PageShell already shows it.
+// Home passes `href` so the title links to /fx and shows the (up to four) currencies the visitor picked;
+// the /fx page passes `all` for every currency and `hideTitle` because PageShell already shows it.
 export function FxRates({ href, hideTitle = false, all = false }: { href?: string; hideTitle?: boolean; all?: boolean }) {
   const t = useT();
-  const { data, error } = useApi(all ? "fx-all" : "fx", (signal) => fetchFx(signal, all));
+  const { data, error } = useApi("fx-all", (signal) => fetchFx(signal, true));
+  const picks = useFxPicks();
+  const [editing, setEditing] = useState(false);
+  const shown = all
+    ? data?.currencies
+    : data && picks.flatMap((code) => data.currencies.filter((c) => c.code === code));
 
   return (
     <section aria-label={t.fx.title}>
@@ -32,19 +38,55 @@ export function FxRates({ href, hideTitle = false, all = false }: { href?: strin
             )}
           </h2>
         )}
-        {data && (
-          <span className="whitespace-nowrap text-xs text-slate-500">
-            {t.fx.asOf(data.date)} · {t.fx.vsPrev}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {data && (
+            <span className="whitespace-nowrap text-xs text-slate-500">
+              {t.fx.asOf(data.date)} · {t.fx.vsPrev}
+            </span>
+          )}
+          {!all && data && (
+            <button
+              type="button"
+              aria-expanded={editing}
+              onClick={() => setEditing(!editing)}
+              className="whitespace-nowrap rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand-ink hover:brightness-95"
+            >
+              {editing ? t.fx.pickDone : t.fx.pickEdit}
+            </button>
+          )}
+        </div>
       </header>
+
+      {editing && data && (
+        <div className="mt-3 rounded-2xl bg-brand-pale p-3">
+          <p className="mb-2 text-xs text-slate-600">{t.fx.pickHint(MAX_PICKS)}</p>
+          <div role="group" aria-label={t.fx.pickEdit} className="flex flex-wrap gap-1.5">
+            {data.currencies.map((c) => {
+              const on = picks.includes(c.code);
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggleFxPick(c.code)}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    on ? "bg-brand text-slate-900" : "bg-white text-slate-600 ring-1 ring-slate-200"
+                  }`}
+                >
+                  {c.code}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {error ? (
         <p className="mt-3 text-sm text-slate-500">{t.fx.error}</p>
       ) : (
         <ul className={`mt-4 grid grid-cols-2 gap-3 ${all ? "sm:grid-cols-3 lg:grid-cols-4" : ""}`}>
-          {data
-            ? data.currencies.map((c) => (
+          {shown
+            ? shown.map((c) => (
                 <li key={c.code}>
                   <FxTile c={c} />
                 </li>

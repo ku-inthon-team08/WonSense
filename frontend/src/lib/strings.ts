@@ -254,6 +254,9 @@ const ko = {
       asOf: (d: string) => `${d} 기준`,
       note: "중앙은행 기준 환율이라 실제 환전·카드 결제 금액과는 달라요.",
       error: "환율 정보를 불러오지 못했어요",
+      pickEdit: "통화 변경",
+      pickDone: "완료",
+      pickHint: (n: number) => `보고 싶은 통화를 최대 ${n}개까지 골라요. 이 기기에 저장돼요.`,
       converter: {
         title: "환전 계산기",
         amount: "금액",
@@ -559,6 +562,9 @@ const en: Strings = {
     asOf: (d: string) => `As of ${d}`,
     note: "Central bank reference rates. Money changers and card payments will differ.",
     error: "Couldn't load exchange rates",
+    pickEdit: "Change",
+    pickDone: "Done",
+    pickHint: (n: number) => `Pick up to ${n} currencies to show here. Saved on this device.`,
     converter: {
       title: "Currency converter",
       amount: "Amount",
