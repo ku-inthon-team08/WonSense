@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import health, heatmap, items, quiz, reviews, scan, stores
+from app.routers import fx, health, heatmap, items, quiz, reviews, scan, stores
 
 settings = get_settings()
 
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(fx.router)
 app.include_router(items.router)
 app.include_router(heatmap.router)
 app.include_router(quiz.router)
