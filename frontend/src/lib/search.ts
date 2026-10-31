@@ -41,5 +41,15 @@ export type SearchResponse = {
   not_covered: boolean; // restaurant menu / transport query: no data yet
 };
 
-export const searchItems = (q: string, init?: RequestInit) =>
-  api<SearchResponse>(`/api/items/search?q=${encodeURIComponent(q)}`, init);
+// Vercel(프론트)와 Render(백엔드)는 따로 배포되므로, 프론트가 먼저 바뀌면 백엔드 응답에 menus가 아직 없을 수 있다.
+// 그때도 화면이 깨지지 않도록 빠진 배열은 빈 배열로 채운다.
+export const searchItems = async (q: string, init?: RequestInit): Promise<SearchResponse> => {
+  const res = await api<Partial<SearchResponse>>(`/api/items/search?q=${encodeURIComponent(q)}`, init);
+  return {
+    query: res.query ?? q,
+    results: res.results ?? [],
+    menus: res.menus ?? [],
+    suggestions: res.suggestions ?? [],
+    not_covered: res.not_covered ?? false,
+  };
+};
