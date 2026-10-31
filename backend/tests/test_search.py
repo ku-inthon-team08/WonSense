@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routers.items import get_items
+from app.routers.items import get_items, get_menus
 from app.services.search import english_name, is_restaurant_query, search_items, split_name, suggest
 
 # price_stats에 실제로 있는 품목명 일부 (2026-10-26 기준)
@@ -75,6 +75,8 @@ def test_no_result_gives_suggestions_and_restaurant_notice():
 
 def test_search_endpoint():
     app.dependency_overrides[get_items] = lambda: ITEMS
+    # 식당 메뉴 데이터가 없을 때: 외식 검색어는 not_covered
+    app.dependency_overrides[get_menus] = lambda: {"rows": [], "districts": {}, "reference_date": None}
     try:
         client = TestClient(app)
         body = client.get("/api/items/search", params={"q": "soju"}).json()
