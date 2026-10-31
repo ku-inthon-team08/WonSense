@@ -33,10 +33,27 @@ export type MenuResult = {
   reference_date: string | null;
 };
 
+// Packaged goods at marts / convenience stores (KCA 참가격, nationwide, regular prices only)
+export type ProductResult = {
+  product_name: string; // Korean brand + size, e.g. 참이슬 후레쉬(360ml)
+  category_en: string | null; // e.g. "Soju"; null when matched by Korean name only
+  manufacturer: string | null;
+  price_low: number; // 25th percentile across stores
+  price_median: number;
+  price_high: number; // 75th percentile
+  price_min: number;
+  price_max: number;
+  store_count: number;
+  convenience_price: number | null; // median at CU / GS25 / 7-Eleven / emart24
+  reference_date: string;
+  source: string;
+};
+
 export type SearchResponse = {
   query: string;
   results: SearchItem[];
   menus: MenuResult[];
+  products: ProductResult[];
   suggestions: string[]; // typo fixes when there are no results
   not_covered: boolean; // restaurant menu / transport query: no data yet
 };
@@ -49,6 +66,7 @@ export const searchItems = async (q: string, init?: RequestInit): Promise<Search
     query: res.query ?? q,
     results: res.results ?? [],
     menus: res.menus ?? [],
+    products: res.products ?? [],
     suggestions: res.suggestions ?? [],
     not_covered: res.not_covered ?? false,
   };
