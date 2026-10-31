@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { searchKakaoPlaces } from "@/lib/kakao";
 import { DISTRICTS, STORE_CATEGORIES, searchStores, type NewStore, type Store, type StoreCategory } from "@/lib/reviews";
 import { useDistrictName, useT } from "@/lib/i18n";
 
@@ -11,25 +12,30 @@ export type StoreChoice = { kind: "existing"; store: Store } | { kind: "new"; st
 
 const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand";
 
-// Pick an existing store (autocomplete on GET /api/stores) or describe a new one.
+// Pick an existing store (autocomplete on GET /api/stores), a place from Kakao, or describe a new one.
 // The backend reuses a store with the same name + district, so duplicates are harmless.
 export function StorePicker({ value, onChange }: { value: StoreChoice; onChange: (v: StoreChoice) => void }) {
   const t = useT();
   const dn = useDistrictName();
   const [query, setQuery] = useState("");
-  const [found, setFound] = useState<{ q: string; stores: Store[] }>({ q: "", stores: [] });
+  const [found, setFound] = useState<{ q: string; stores: Store[]; places: NewStore[] }>({ q: "", stores: [], places: [] });
   const [open, setOpen] = useState(false);
   const name = query.trim();
   // Only show results for the term currently typed (older responses are ignored).
   const results = found.q === name ? found.stores : [];
+  const places = found.q === name ? found.places : [];
+  const newPlaces = places.filter((p) => !results.some((s) => s.name === p.name && s.district === p.district));
 
   useEffect(() => {
     if (!name) return;
     let cancelled = false;
-    const timer = setTimeout(() => {
-      searchStores(name)
-        .then((stores) => !cancelled && setFound({ q: name, stores }))
-        .catch(() => !cancelled && setFound({ q: name, stores: [] }));
+    const timer = setTimeout(async () => {
+      // Each search can fail alone: Kakao being down must not hide stores we already have.
+      const [stores, places] = await Promise.all([
+        searchStores(name).catch(() => []),
+        searchKakaoPlaces(name).catch(() => []),
+      ]);
+      if (!cancelled) setFound({ q: name, stores, places });
     }, 250);
     return () => {
       cancelled = true;
@@ -131,6 +137,19 @@ export function StorePicker({ value, onChange }: { value: StoreChoice; onChange:
                 className="w-full px-3 py-2 text-left hover:bg-brand-pale"
               >
                 <StoreTag store={s} />
+              </button>
+            </li>
+          ))}
+          {newPlaces.map((p) => (
+            <li key={`${p.name}|${p.address}`}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onChange({ kind: "new", store: p })}
+                className="w-full px-3 py-2 text-left hover:bg-brand-pale"
+              >
+                <span className="block font-medium">{p.name}</span>
+                <span className="block text-xs text-slate-500">{p.address}</span>
               </button>
             </li>
           ))}
