@@ -14,12 +14,26 @@ class Settings(BaseSettings):
     # 서울 열린데이터광장 인증키. 예전 이름 SEOUL_API_KEY도 받는다
     seoul_openapi_key: str = Field("", validation_alias=AliasChoices("SEOUL_OPENAPI_KEY", "SEOUL_API_KEY"))
     anthropic_api_key: str = ""
+    # LLM (바가지 판독기). 비워 두면 Claude API를 ANTHROPIC_API_KEY로 쓴다.
+    # Lablup Token Factory 같은 Anthropic 호환 게이트웨이를 쓰려면 셋 다 넣는다:
+    #   LLM_BASE_URL=https://api.console.lablup.ai/anthropic
+    #   LLM_API_KEY=<console.lablup.ai에서 발급한 키>
+    #   LLM_MODEL=deepseek-ai/DeepSeek-V4.1-Flash
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "claude-haiku-5-5"
     # 공공데이터포털 일반 인증키 (Decoding). 한국소비자원 참가격 생필품 가격 수집에 쓴다
     data_go_kr_api_key: str = ""
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     # 배포된 프론트(Vercel 프로덕션 won-sense.vercel.app + 프리뷰 won-sense-*.vercel.app)를 허용.
     # CORS_ORIGINS는 .env로 덮어쓰면 기본값이 사라지므로 따로 둔다. 비우면 정규식 허용을 끈다
     cors_origin_regex: str = r"https://won-sense(-[a-z0-9-]+)?\.vercel\.app"
+
+    @field_validator("llm_model")
+    @classmethod
+    def default_llm_model(cls, v: str) -> str:
+        # .env.example처럼 LLM_MODEL= 로 비워 두면 기본 Claude 모델을 쓴다
+        return v.strip() or "claude-haiku-5-5"
 
     @field_validator("supabase_url")
     @classmethod
