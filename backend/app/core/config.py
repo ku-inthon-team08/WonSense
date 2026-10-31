@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     seoul_openapi_key: str = Field("", validation_alias=AliasChoices("SEOUL_OPENAPI_KEY", "SEOUL_API_KEY"))
     anthropic_api_key: str = ""
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    # 배포된 프론트(Vercel 프로덕션 won-sense.vercel.app + 프리뷰 won-sense-*.vercel.app)를 허용.
+    # CORS_ORIGINS는 .env로 덮어쓰면 기본값이 사라지므로 따로 둔다. 비우면 정규식 허용을 끈다
+    cors_origin_regex: str = r"https://won-sense(-[a-z0-9-]+)?\.vercel\.app"
 
     @field_validator("supabase_url")
     @classmethod
