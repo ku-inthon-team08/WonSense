@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
     supabase_anon_key: str = ""
-    seoul_api_key: str = ""
+    # 서울 열린데이터광장 인증키. 예전 이름 SEOUL_API_KEY도 받는다
+    seoul_openapi_key: str = Field("", validation_alias=AliasChoices("SEOUL_OPENAPI_KEY", "SEOUL_API_KEY"))
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     @field_validator("supabase_url")
