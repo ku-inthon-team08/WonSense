@@ -9,16 +9,18 @@ Claude 호출 한 번으로 (1) 사진의 품목·가격을 읽고 (2) 우리 �
 메뉴판 통역: 같은 호출에서 메뉴마다 영어 설명·매운 정도·들어간 재료도 받는다.
 """
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
+from app.core.claude import is_claude_model
 from app.services.menus import search_menus
 
-MODEL = "claude-haiku-5-5"
+MODEL = "claude-haiku-5-5"  # 기본값. 실제 모델은 LLM_MODEL 설정 (app/core/config.py)
 
 FAIR_BAND = 0.10  # 평균 ±10%는 적정가
 RIPOFF = 0.30  # 평균보다 30% 넘게 비싸면 바가지
@@ -110,30 +112,71 @@ def catalog_text(items: list[dict]) -> str:
     )
 
 
-def extract_lines(client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict]) -> list[ScannedLine]:
+def _user_message(image_b64: str, media_type: str, text: str) -> list[dict]:
+    return [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_b64}},
+                {"type": "text", "text": text},
+            ],
+        }
+    ]
+
+
+def extract_lines(
+    client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict], model: str = MODEL
+) -> list[ScannedLine]:
+    if not is_claude_model(model):
+        return _extract_lines_json(client, image_b64, media_type, items, model)
     response = client.messages.parse(
-        model=MODEL,
+        model=model,
         max_tokens=16000,
         output_config={"effort": "low"},
         system=[
             {"type": "text", "text": SYSTEM_PROMPT},
             {"type": "text", "text": catalog_text(items), "cache_control": {"type": "ephemeral"}},
         ],
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_b64}},
-                    {"type": "text", "text": "Read every priced item in this photo."},
-                ],
-            }
-        ],
+        messages=_user_message(image_b64, media_type, "Read every priced item in this photo."),
         output_format=ScanOutput,
     )
     out = response.parsed_output
     if out is None:
         raise ValueError(f"사진 판독 실패 (stop_reason={response.stop_reason})")
     return out.lines
+
+
+JSON_INSTRUCTIONS = """Answer with one JSON object and nothing else (no prose, no code fences), matching this JSON schema:
+{schema}
+Every field must be present; use null where the rules above say so."""
+
+
+def parse_scan_json(text: str) -> ScanOutput:
+    """모델이 코드 블록이나 앞뒤 설명을 붙여도 첫 JSON 객체만 꺼내 스키마로 검증한다."""
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError("모델 응답에 JSON이 없습니다")
+    try:
+        return ScanOutput.model_validate_json(text[start : end + 1])
+    except ValidationError as e:
+        raise ValueError(f"모델 응답이 스키마와 맞지 않습니다: {e.error_count()}개 오류") from e
+
+
+def _extract_lines_json(
+    client: anthropic.Anthropic, image_b64: str, media_type: str, items: list[dict], model: str
+) -> list[ScannedLine]:
+    """Claude가 아닌 모델(DeepSeek 등): 구조화 출력 대신 JSON 답변을 받아 직접 검증한다."""
+    schema = json.dumps(ScanOutput.model_json_schema(), ensure_ascii=False)
+    response = client.messages.create(
+        model=model,
+        max_tokens=8000,
+        temperature=0,
+        system=f"{SYSTEM_PROMPT}\n\n{catalog_text(items)}\n\n{JSON_INSTRUCTIONS.format(schema=schema)}",
+        messages=_user_message(image_b64, media_type, "Read every priced item in this photo. Reply with JSON only."),
+    )
+    text = "".join(b.text for b in response.content if getattr(b, "type", None) == "text")
+    return parse_scan_json(text).lines
 
 
 def verdict(diff: float) -> Verdict:
