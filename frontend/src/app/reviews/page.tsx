@@ -16,7 +16,7 @@ export default function ReviewsPage() {
       action={
         <Link
           href="/reviews/new"
-          className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90"
+          className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-slate-900 hover:bg-brand/90"
         >
           {t.review.write}
         </Link>

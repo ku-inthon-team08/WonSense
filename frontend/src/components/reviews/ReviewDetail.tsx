@@ -78,7 +78,7 @@ export function ReviewDetail() {
           {review.paid_price != null && (
             <span>
               <span className="text-sm text-slate-600">{t.review.paid} </span>
-              <span className="text-lg font-bold text-brand">{formatKrw(review.paid_price)}</span>
+              <span className="text-lg font-bold text-brand-ink">{formatKrw(review.paid_price)}</span>
             </span>
           )}
           {review.price_feeling && <PriceFeelingBadge feeling={review.price_feeling} />}

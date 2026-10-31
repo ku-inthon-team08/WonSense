@@ -86,7 +86,7 @@ export function SearchResults() {
                 {data.suggestions.map((s, i) => (
                   <span key={s}>
                     {i > 0 && ", "}
-                    <Link href={`/search?q=${encodeURIComponent(s)}`} className="font-medium text-brand underline">
+                    <Link href={`/search?q=${encodeURIComponent(s)}`} className="font-medium text-brand-ink underline">
                       {s}
                     </Link>
                   </span>
@@ -227,7 +227,7 @@ function WebMenuCard({ menu }: { menu: WebMenuResult }) {
             </span>
             <span className="shrink-0 tabular-nums">
               <span className="font-medium">{formatKrw(e.price)}</span>{" "}
-              <a href={e.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand underline">
+              <a href={e.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-ink underline">
                 {t.search.sourceLink}
               </a>
             </span>
@@ -274,7 +274,7 @@ function ProductCard({ product }: { product: ProductResult }) {
 function ReviewLink({ q }: { q: string }) {
   const t = useT();
   return (
-    <Link href={`/reviews?q=${encodeURIComponent(q)}`} className="mt-4 inline-block text-sm font-medium text-brand">
+    <Link href={`/reviews?q=${encodeURIComponent(q)}`} className="mt-4 inline-block text-sm font-medium text-brand-ink">
       {t.search.reviews(q)} →
     </Link>
   );

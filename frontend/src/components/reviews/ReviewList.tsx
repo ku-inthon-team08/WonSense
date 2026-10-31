@@ -118,7 +118,7 @@ function SearchForm({ initial, onSearch }: { initial: string; onSearch: (q: stri
         aria-label={t.review.search}
         className={inputClass}
       />
-      <button type="submit" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white">
+      <button type="submit" className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-slate-900">
         {t.review.search}
       </button>
     </form>
