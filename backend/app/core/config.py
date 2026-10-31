@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     # 공공데이터포털 일반 인증키 (Decoding). 한국소비자원 참가격 생필품 가격 수집에 쓴다
     data_go_kr_api_key: str = ""
+    # 카카오 디벨로퍼스 REST API 키 (로컬 장소 검색). 식당 가격 수집 스크립트에서만 쓴다
+    kakao_rest_api_key: str = ""
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     # 배포된 프론트(Vercel 프로덕션 won-sense.vercel.app + 프리뷰 won-sense-*.vercel.app)를 허용.
     # CORS_ORIGINS는 .env로 덮어쓰면 기본값이 사라지므로 따로 둔다. 비우면 정규식 허용을 끈다
