@@ -20,6 +20,9 @@ MENU_MIN_STORES = 20  # 메뉴 퀴즈는 가게가 이만큼 이상 조사된 �
 MENU_SOURCE = "서울시 착한가격업소 기준"
 FOOD_INDUSTRIES = {"한식", "중식", "경양식/일식", "기타외식업"}
 NON_FOOD_MENUS = {"커트", "파마", "염색"}
+# 가격 감 익히기에서 "이 돈이면 몇 개"로 보여줄 익숙한 기준 품목
+ANCHOR_ITEMS = {"생수 500ml 1병", "소주 360ml, 1병", "맥주 500ml 1캔", "계란 10개"}
+ANCHOR_MENUS = {"아메리카노", "김밥", "김치찌개", "삼겹살"}
 
 
 def _pick(pool: list, key, exclude: str | None, rng: random.Random):
@@ -84,6 +87,39 @@ def menu_stats(rows: list[dict]) -> list[dict]:
         if len(prices) >= MENU_MIN_STORES:
             out.append({"menu_name": key, **price_stats(prices)})
     return out
+
+
+def build_price_cards(items: list[dict], menus: list[dict]) -> dict:
+    """가격 감 익히기(금액 슬라이더·가격 사다리)에 쓰는 카드. 채점이 없어서 한 번 받아 브라우저에서 돌린다.
+    100g 단위 품목은 "이 돈이면 몇 개"로 읽히지 않아서 뺀다."""
+    groceries = [i for i in items if "100g" not in i["quiz_name"]]
+    cards = [
+        {
+            "key": f"item:{i['item_id']}",
+            "kind": "grocery",
+            "name": i["quiz_name"],
+            "name_en": i.get("quiz_name_en"),
+            "price": i["price_avg"],
+            "anchor": i.get("source_key") in ANCHOR_ITEMS,
+            "tip": i["tip"] or None,
+            "tip_en": i.get("tip_en"),
+        }
+        for i in groceries
+    ]
+    cards += [
+        {
+            "key": f"menu:{m['menu_name']}",
+            "kind": "dish",
+            "name": m["menu_name"],
+            "name_en": MENU_DICT[m["menu_name"]][0],
+            "price": m["price_median"],
+            "anchor": m["menu_name"] in ANCHOR_MENUS,
+            "tip": None,
+            "tip_en": None,
+        }
+        for m in menus
+    ]
+    return {"cards": cards, "reference_date": max((i["reference_date"] for i in groceries), default=None)}
 
 
 def build_menu(stats: list[dict], exclude: str | None, rng: random.Random) -> dict:

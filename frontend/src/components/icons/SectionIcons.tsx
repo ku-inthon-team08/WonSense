@@ -34,6 +34,30 @@ export function StarIcon({ className }: { className?: string }) {
   );
 }
 
+export function WonIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} aria-hidden className={className}>
+      <path d="m5 6 3.5 12L12 8l3.5 10L19 6M3.5 11h17" />
+    </svg>
+  );
+}
+
+export function LadderIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} aria-hidden className={className}>
+      <path d="M8 3v18M16 3v18M8 8h8M8 13h8M8 18h8" />
+    </svg>
+  );
+}
+
+export function GripIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} aria-hidden className={className}>
+      <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />
+    </svg>
+  );
+}
+
 export function ArrowRightIcon({ className }: { className?: string }) {
   return (
     <svg {...base} aria-hidden className={className}>
