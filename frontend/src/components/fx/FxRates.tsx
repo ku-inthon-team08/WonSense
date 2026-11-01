@@ -8,6 +8,7 @@ import { MAX_PICKS, toggleFxPick, useFxPicks } from "@/lib/fxPicks";
 import { ArrowRightIcon, ExchangeIcon } from "@/components/icons/SectionIcons";
 import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
+import { Skeleton } from "@/components/Skeleton";
 
 // Exchange rates: stat tiles (value + day-over-day change + 14-day sparkline).
 // Home passes `href` so the title links to /fx and shows the (up to four) currencies the visitor picked;
@@ -92,7 +93,9 @@ export function FxRates({ href, hideTitle = false, all = false }: { href?: strin
                 </li>
               ))
             : Array.from({ length: all ? 12 : 4 }, (_, i) => (
-                <li key={i} aria-hidden className="h-[118px] animate-pulse rounded-2xl bg-brand-pale" />
+                <li key={i} aria-hidden>
+                  <Skeleton i={i} className="h-[118px] rounded-2xl" />
+                </li>
               ))}
         </ul>
       )}

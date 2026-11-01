@@ -10,6 +10,7 @@ import { inputClass } from "@/lib/ui";
 import { useApi } from "@/lib/useApi";
 
 import { ReviewCard } from "./ReviewCard";
+import { SkeletonRows } from "@/components/Skeleton";
 
 const PAGE_SIZE = 10;
 
@@ -45,7 +46,7 @@ export function ReviewList() {
       <SearchForm key={q} initial={q} onSearch={(term) => go({ q: term, page: 1 })} />
 
       <div className="mt-4">
-        {loading && <p className="py-10 text-center text-slate-500">{t.review.loading}</p>}
+        {loading && <SkeletonRows label={t.review.loading} rows={5} className="py-2" />}
 
         {error && (
           <ErrorBox title={t.review.loadError} message={error.message}>

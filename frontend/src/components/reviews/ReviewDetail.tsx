@@ -14,6 +14,7 @@ import { useApi } from "@/lib/useApi";
 import { PasswordDialog } from "./PasswordDialog";
 import { PriceFeelingBadge, Stars, StoreTag } from "./ReviewMeta";
 import { ReviewForm } from "./ReviewForm";
+import { SkeletonCards } from "@/components/Skeleton";
 
 export function ReviewDetail() {
   const t = useT();
@@ -33,7 +34,7 @@ export function ReviewDetail() {
   if (error) return <ErrorBox title={t.review.loadError} message={error.message} />;
 
   const review = saved?.id === reviewId ? saved : data;
-  if (!review) return <p className="py-10 text-center text-slate-500">{t.review.loading}</p>;
+  if (!review) return <SkeletonCards label={t.review.loading} cards={1} />;
 
   if (editPassword) {
     return (

@@ -5,6 +5,7 @@ import { formatKrw } from "@/lib/format";
 import { formatPct, getDistrictDetail, type DistrictItem, type HeatmapDistrict, type HeatmapItem } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
 import { useDistrictName, useT } from "@/lib/i18n";
+import { SkeletonLines } from "@/components/Skeleton";
 
 type Props = {
   district: HeatmapDistrict;
@@ -69,7 +70,7 @@ export function DistrictPanel({ district, item, onClose }: Props) {
           </dl>
         )
       ) : detail.loading ? (
-        <p className="mt-3 text-sm text-slate-500">{t.loading}</p>
+        <SkeletonLines label={t.loading} lines={4} className="mt-3" />
       ) : detail.error ? (
         <p className="mt-3 text-sm text-red-700">{t.heatmapError}</p>
       ) : (

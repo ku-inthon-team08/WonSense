@@ -123,3 +123,34 @@ h3 {
     }
   }
 }
+
+/* ---------- Loading skeleton: cream blocks with a soft amber wave rolling across ---------- */
+
+.skeleton {
+  background-color: rgb(245 228 196 / 0.75);
+  background-image: linear-gradient(100deg, transparent 25%, rgb(255 250 238 / 0.9) 50%, transparent 75%);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The wave slides across while the block gently "breathes"; --i staggers neighbours so the list ripples. */
+  .skeleton {
+    animation:
+      skeleton-wave 1.6s ease-in-out infinite,
+      skeleton-breathe 1.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.12s);
+  }
+  @keyframes skeleton-wave {
+    to {
+      background-position: -120% 0;
+    }
+  }
+  @keyframes skeleton-breathe {
+    50% {
+      opacity: 0.65;
+      transform: scaleY(0.97);
+    }
+  }
+}

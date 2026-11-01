@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { PageShell } from "@/components/PageShell";
 import { ReviewList } from "@/components/reviews/ReviewList";
 import { useT } from "@/lib/i18n";
+import { SkeletonRows } from "@/components/Skeleton";
 
 export default function ReviewsPage() {
   const t = useT();
@@ -23,7 +24,7 @@ export default function ReviewsPage() {
       }
     >
       {/* ReviewList reads ?q=&page= (useSearchParams), which needs a Suspense boundary under cacheComponents */}
-      <Suspense fallback={<p className="py-10 text-center text-slate-500">{t.review.loading}</p>}>
+      <Suspense fallback={<SkeletonRows label={t.review.loading} rows={5} />}>
         <ReviewList />
       </Suspense>
     </PageShell>

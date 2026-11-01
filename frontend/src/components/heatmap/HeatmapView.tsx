@@ -8,6 +8,7 @@ import { formatKrw } from "@/lib/format";
 import { binFor, formatPct, getHeatmap, getHeatmapItems } from "@/lib/heatmap";
 import { useApi } from "@/lib/useApi";
 import { useDistrictName, useT } from "@/lib/i18n";
+import { SkeletonLines } from "@/components/Skeleton";
 
 export function HeatmapView() {
   const t = useT();
@@ -77,7 +78,7 @@ export function HeatmapView() {
           <section className="rounded-2xl bg-white p-4 shadow-card">
             <h2 className="mb-2 text-sm font-semibold text-slate-700">{t.heatmapRanking}</h2>
             {heatmap.loading && !heatmap.data ? (
-              <p className="text-sm text-slate-500">{t.loading}</p>
+              <SkeletonLines label={t.loading} lines={8} />
             ) : (
               <table className="w-full text-sm">
                 <thead className="sr-only">

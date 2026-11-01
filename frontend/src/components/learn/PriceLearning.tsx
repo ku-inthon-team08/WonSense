@@ -10,6 +10,7 @@ import { useApi } from "@/lib/useApi";
 
 import { BudgetQuiz } from "./BudgetQuiz";
 import { PriceLadder } from "./PriceLadder";
+import { SkeletonLines } from "@/components/Skeleton";
 
 function Title({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
@@ -27,7 +28,13 @@ export function PriceLearning() {
   const t = useT();
   const { data, error } = useApi("price-cards", (signal) => fetchPriceCards(signal));
   const ready = data && data.cards.length >= RUNGS;
-  const status = !ready && <p className="py-6 text-center text-slate-500">{error || data ? t.learn.error : t.loading}</p>;
+  const status =
+    !ready &&
+    (error || data ? (
+      <p className="py-6 text-center text-slate-500">{t.learn.error}</p>
+    ) : (
+      <SkeletonLines label={t.loading} lines={4} className="py-4" />
+    ));
 
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-2">

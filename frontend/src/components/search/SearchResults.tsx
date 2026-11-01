@@ -10,6 +10,7 @@ import { formatKrw, formatKrwRange } from "@/lib/format";
 import { searchItems, type MenuResult, type ProductResult, type SearchItem, type WebMenuResult } from "@/lib/search";
 import { useDistrictName, useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
+import { SkeletonCards } from "@/components/Skeleton";
 
 // Reads ?q= so results can be linked to and the browser back button works.
 export function SearchResults() {
@@ -25,7 +26,7 @@ export function SearchResults() {
 
       <div className="mt-6">
         {!q && <p className="py-10 text-center text-slate-500">{t.search.empty}</p>}
-        {loading && <p className="py-10 text-center text-slate-500">{t.loading}</p>}
+        {loading && <SkeletonCards label={t.loading} />}
         {error && <ErrorBox title={t.search.error} message={error.message} />}
 
         {data && data.menus.length > 0 && (

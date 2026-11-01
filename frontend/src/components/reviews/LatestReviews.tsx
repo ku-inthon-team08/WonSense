@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { useApi } from "@/lib/useApi";
 
 import { ReviewCard } from "./ReviewCard";
+import { SkeletonRows } from "@/components/Skeleton";
 
 // Home ④: the newest few reviews.
 export function LatestReviews({ count = 3 }: { count?: number }) {
@@ -15,7 +16,7 @@ export function LatestReviews({ count = 3 }: { count?: number }) {
   const reviews = data?.items;
 
   if (error) return <p className="py-4 text-center text-sm text-slate-500">{t.review.loadError}</p>;
-  if (!reviews) return <p className="py-4 text-center text-sm text-slate-500">{t.review.loading}</p>;
+  if (!reviews) return <SkeletonRows label={t.review.loading} rows={count} />;
   if (reviews.length === 0)
     return (
       <Link

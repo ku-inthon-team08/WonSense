@@ -10,6 +10,7 @@ import { GuessQuiz } from "./GuessQuiz";
 import { ResultBox } from "./ResultBox";
 import { quizName, quizQuestion } from "./text";
 import type { Outcome, QuizData } from "./types";
+import { Skeleton, SkeletonGroup } from "@/components/Skeleton";
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -49,7 +50,16 @@ export function QuizCard({ mascot = false }: { mascot?: boolean }) {
         />
       )}
       {!quiz ? (
-        <p className="text-slate-600">{error ? t.quizError : t.quizLoading}</p>
+        error ? (
+          <p className="text-slate-600">{t.quizError}</p>
+        ) : (
+          <SkeletonGroup label={t.quizLoading} className={`flex flex-col gap-4 ${mascot ? "lg:pr-32" : ""}`}>
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton i={1} className="h-9 w-32 rounded-full" />
+            <Skeleton i={2} className="h-5 w-4/5 rounded-full" />
+            <Skeleton i={3} className="h-12 w-full rounded-xl" />
+          </SkeletonGroup>
+        )
       ) : (
         <>
           {/* 문제 부분: 호랑이 그림과 겹치지 않게 넓은 화면에서 오른쪽을 비운다 */}
