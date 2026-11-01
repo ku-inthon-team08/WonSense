@@ -1,0 +1,58 @@
+# 공공데이터 가격 수집을 매달 자동으로 돌린다 (backend/scripts의 수집 스크립트 3개).
+# 필요한 저장소 Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SEOUL_OPENAPI_KEY, DATA_GO_KR_API_KEY
+# Actions 탭에서 "Run workflow"로 수동 실행할 수 있고, 생필품 가격은 원하는 달(YYYY-MM)을 지정할 수 있다.
+name: Ingest price data
+
+on:
+  schedule:
+    # 매달 3일 03:00 KST (UTC 2일 18:00). 원본이 월 단위로 갱신되므로 지난달 데이터가 다 올라온 뒤에 돈다
+    - cron: "0 18 2 * *"
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "생필품 가격 수집 월 (YYYY-MM). 비우면 지난달"
+        required: false
+        default: ""
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SEOUL_OPENAPI_KEY: ${{ secrets.SEOUL_OPENAPI_KEY }}
+      DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 스크립트끼리는 서로 의존하지 않으므로, 하나가 실패해도 나머지는 돌린다 (작업은 실패로 표시됨)
+      - name: Seoul necessities prices (heatmap, groceries)
+        if: ${{ !cancelled() }}
+        env:
+          MONTH: ${{ inputs.month }}
+        run: python -m scripts.ingest_prices --month "${MONTH:-$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y-%m)}"
+
+      - name: Seoul good-price restaurant menus
+        if: ${{ !cancelled() }}
+        run: python -m scripts.ingest_menus
+
+      - name: KCA product prices
+        if: ${{ !cancelled() }}
+        run: python -m scripts.ingest_products
