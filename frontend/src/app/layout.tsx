@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <LanguageToggle />
         {children}
         <footer className="mt-auto py-6 text-center text-xs text-slate-500">
-          Copyright 2026. 8sense All Rights Reserved.
+          Copyright 2026. 8thSense All Rights Reserved.
         </footer>
       </body>
     </html>
