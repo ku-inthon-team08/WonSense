@@ -49,3 +49,4 @@ yarn-error.log*
 
 # 수집 스크립트 결과 파일 (DB에 저장됨)
 backend/scripts/output/
+.vercel
